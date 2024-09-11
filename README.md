@@ -11,8 +11,8 @@ Results can be published in the following formats
 * Coverage results to **_GitLab_**, **_SonarQube_**: **_Cobertura_** (xml_data/cobertura) and **_Extended Cobertura_**
 * Test Results
     * To **_GitLab_**: **_JUnit_** (xml_data/junit)
-    * To **_SonarQube_**: **_CppUnit_** (xml_data/sonarqube) 
-* Static Analysis to **_GitLab_**: **_CodeClimate_**
+    * To **_SonarQube_**: **_CppUnit_** (xml_data/sonarqube)  
+* Static Analysis to **_GitLab_**: **_CodeClimate_** (pclp/gl-code-quality-report.json)
 
 :warning: Due to the limiations of Cobertura plugin, only Statement and Branch results are reported
 
