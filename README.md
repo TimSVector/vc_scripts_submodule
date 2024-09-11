@@ -1,6 +1,10 @@
 # General
 
-This is a submodule for the scripts required to integrate VectorCAST and various CI/CD tools
+Integration between VectorCAST and GitLab Pipelines
+
+# Installation
+
+This repository uses a git submodule so make sure when you clone this repository, clone with _--recurse-submodules_ option
 
 # Installation
 
