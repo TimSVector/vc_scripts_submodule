@@ -39,11 +39,11 @@ def make_relative(path, workspace):
         
     # if the paths match
     if path.lower().startswith(workspace.lower()):
-        path = path[len(workspace)+1:]
+        path = path[len(workspace):]
         
     # if the paths match except for first character (d:\ changed to j:\)
     elif path.lower()[1:].startswith(workspace.lower()[1:]):
-        path = path[len(workspace)+1:]
+        path = path[len(workspace):]
         
     elif "workspace" in path:
         # if paths are different, find the workspace in the jenkins path
@@ -95,6 +95,7 @@ def addConvertCoverFile(tf, file, workspace, build_dir, nocase):
     print("Updating cover.db")
     fullpath = build_dir + os.path.sep + file
     bakpath = fullpath + '.bk'
+    
     if os.path.isfile(fullpath):
         conn = sqlite3.connect(fullpath)
         if conn:
@@ -110,7 +111,7 @@ def addConvertCoverFile(tf, file, workspace, build_dir, nocase):
             
             conn.commit()
             conn.close()
-            addFile(tf, file)
+            addFile(tf, file, build_dir)
             os.remove(fullpath)
             shutil.move(bakpath, fullpath)
 
@@ -125,7 +126,7 @@ def addConvertMasterFile(tf, file, workspace, build_dir, nocase):
             updateDatabase(conn, nocase, workspace, "path", "sourcefiles")
             conn.commit()
             conn.close()
-            addFile(tf, file)
+            addFile(tf, file, build_dir)
             os.remove(fullpath)
             shutil.move(bakpath, fullpath)
 
@@ -174,6 +175,7 @@ def run(ManageProjectName, Level, BaseName, Env, workspace):
             addFile(tf, "manage.xml", build_dir)
             addFile(tf, "testcase_data.xml", build_dir)
             addFile(tf, "*.LIS", build_dir)
+            addFile(tf, "ENVIRO.AUX*", build_dir)
             addFile(tf, "system_test_results.xml", build_dir)
             addDirectory(tf, build_dir, "TESTCASES")
             addFile(tf, "CCAST_.CFG", build_dir, backOneDir=True)

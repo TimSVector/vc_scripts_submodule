@@ -71,7 +71,11 @@ class ManageWait(object):
             output = ( datetime.now().strftime("%H:%M:%S.%f") + "  " + line + "\n" )
             if not self.silent:
                 print(line)
-                logfile.write(output)
+                try:
+                    logfile.write(output)
+                except:
+                    logfile.write(output.decode(self.encFmt))
+                    
             queue.put(line)
 
     def startOutputThread(self, io_target, logfile):
@@ -87,9 +91,13 @@ class ManageWait(object):
         return self.exec_manage(silent)
 
     def exec_manage(self, silent=False):
-        with open("command.log", 'a', encoding=self.encFmt) as logfile:
-            return self.__exec_manage(silent, logfile)
-
+        try:
+            with open("command.log", 'a', encoding=self.encFmt) as logfile:
+                return self.__exec_manage(silent, logfile)
+        except:        
+            with open("command.log", 'a') as logfile:
+                return self.__exec_manage(silent, logfile)
+                
     def __exec_manage(self, silent, logfile):
         self.silent = silent
         callStr = os.environ.get('VECTORCAST_DIR') + os.sep + "manage " + self.command_line
@@ -102,7 +110,10 @@ class ManageWait(object):
         loop_count = 0
         while 1:
             loop_count += 1
-            p = subprocess.Popen(callStr,stdout=subprocess.PIPE,stderr=subprocess.STDOUT, shell=True, universal_newlines=True, encoding=self.encFmt)
+            try:
+                p = subprocess.Popen(callStr,stdout=subprocess.PIPE,stderr=subprocess.STDOUT, shell=True, universal_newlines=True, encoding=self.encFmt)
+            except:
+                p = subprocess.Popen(callStr,stdout=subprocess.PIPE,stderr=subprocess.STDOUT, shell=True, universal_newlines=True)
             
             self.startOutputThread(p.stdout, logfile)
             

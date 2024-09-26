@@ -23,24 +23,24 @@
 #
 
 from lxml import etree
-from vector.apps.DataAPI.vcproject_api import VCProjectApi 
-from vector.apps.DataAPI.vcproject_models import VCProject
+try:
+    from vector.apps.DataAPI.vcproject_api import VCProjectApi 
+    from vector.apps.DataAPI.vcproject_models import VCProject
+except:
+    pass
+try:
+    from vector.apps.DataAPI.unit_test_api import UnitTestApi
+except:
+    from vector.apps.DataAPI.api import Api as UnitTestApi
+
 from vector.apps.DataAPI.cover_api import CoverApi
-from vector.apps.DataAPI.unit_test_api import UnitTestApi
 import sys, os
 from collections import defaultdict
 from pprint import pprint
 
-fileList = []
+from vcast_utils import dump, checkVectorCASTVersion
 
-def dump(obj):
-    if hasattr(obj, '__dict__'): 
-        return vars(obj) 
-    else:
-        try:
-            return {attr: getattr(obj, attr, None) for attr in obj.__slots__} 
-        except:
-            return str(obj)
+fileList = []
 
 def getCoveredFunctionCount(source):
     if len(source.functions) == 0:
@@ -156,7 +156,7 @@ def runGcovResults(api, verbose = False):
         
         for func in file.functions:
             fName = func.name + func.instrumented_functions[0].parameterized_name.replace(func.name,"",1)
-            FN.append("FN:" + str(func.start_line) + fName)
+            FN.append("FN:" + str(func.start_line) + "," + fName)
             if has_anything_covered(func) > 0:
                 FNDA.append("FNDA:1" + "," + fName)
             else:
@@ -191,9 +191,9 @@ def runGcovResults(api, verbose = False):
                             block_count += 1
                             branch_number += 1
         
-        for fn, fdna in FN, FDNA:
-            output += fn + "\n"
-            output += fdna + "\n"
+        for idx in range(0,len(FN)):
+            output += FN[idx] + "\n"
+            output += FNDA[idx] + "\n"
             
         FNH, FNF = getCoveredFunctionCount(file)
         output += "FNF:" + str(FNF) + "\n"
@@ -214,7 +214,7 @@ def runGcovResults(api, verbose = False):
 
         output += "end_of_record" + "\n"
         
-        return output
+    return output
 
 def generateCoverageResults(inFile, xml_data_dir = "xml_data", verbose = False):
     
@@ -235,10 +235,18 @@ def generateCoverageResults(inFile, xml_data_dir = "xml_data", verbose = False):
     else:        
         output = runCoverageResultsMP(inFile, verbose=verbose)
 
-    open(name + "-info", "w").write(output)
-             
+    lcov_data_dir = os.path.join(xml_data_dir,"lcov")
+    if not os.path.exists(lcov_data_dir):
+        os.makedirs(lcov_data_dir)
+
+    open(os.path.join(lcov_data_dir, name + "-info"), "w").write(output)
+    
 if __name__ == '__main__':
     
+    if not checkVectorCASTVersion(21):
+        print("Cannot create LCOV metrics. Please upgrade VectorCAST")
+        sys.exit()
+            
     try:
         inFile = sys.argv[1]
     except:
@@ -246,5 +254,12 @@ if __name__ == '__main__':
         
     generateCoverageResults(inFile, xml_data_dir = "xml_data", verbose = False)
     
+    ## if opened from VectorCAST GUI...
+    if not os.getenv('VCAST_MANAGE_PROJECT_DIRECTORY') is None:
+        from vector.lib.core import VC_Report_Client
 
+        # Open report in VectorCAST GUI
+        report_client = VC_Report_Client.ReportClient()
+        if report_client.is_connected():
+            report_client.open_report("out/index.html", "lcov Results")
 
