@@ -28,7 +28,7 @@ from managewait import ManageWait
 
 import cobertura
 import generate_lcov
-import create_index_html
+from create_index_html import create_index_html
 
 try:
     import generate_results 
@@ -66,6 +66,8 @@ class VectorCASTExecute(object):
         self.metrics = args.metrics
         self.fullstatus = args.fullstatus
         self.aggregate = args.aggregate
+        self.pclp_output_html = args.pclp_output_html
+        self.pclp_input = args.pclp_input
         
         self.html_base_dir = args.html_base_dir
         
@@ -173,24 +175,8 @@ class VectorCASTExecute(object):
         except:
             pass
 
-    
-    def generateIndexHtml(self):
-        try:
-            prj_dir = os.environ['CI_PROJECT_DIR'].replace("\\","/") + "/"
-        except:
-            prj_dir = os.getcwd().replace("\\","/") + "/"
-
-        tempHtmlReportList = glob.glob("*.html")
-        tempHtmlReportList += glob.glob(os.path.join(args.html_base_dir, "*.html"))
-        htmlReportList = []
-
-        for report in tempHtmlReportList:
-            if "index.html" not in report:
-                report = report.replace("\\","/")
-                report = report.replace(prj_dir,"")
-                htmlReportList.append(report)
-        
-        create_index_html.run(htmlReportList)
+    def generateIndexHtml(self):        
+        create_index_html(self.FullMP)
     
     def runJunitMetrics(self):
         print("Creating JUnit Metrics")
@@ -248,14 +234,21 @@ class VectorCASTExecute(object):
             print("Creating SonarQube Metrics")
             generate_sonarqube_testresults.run(self.FullMP, self.xml_data_dir)
         
-    def runPcLintPlusMetrics(self, input_xml):
+    def runPcLintPlusMetrics(self):
+        
         print("Creating PC-lint Plus Metrics")
         import generate_pclp_reports 
         os.makedirs(os.path.join(self.xml_data_dir,"pclp"))
         report_name = os.path.join(self.xml_data_dir,"pclp","gl-code-quality-report.json")
-        print("PC-lint Plus Metrics file: " + report_name)
-        generate_pclp_reports.generate_reports(input_xml, output_gitlab = report_name)
-
+        print("PC-lint Plus Metrics file: ", report_name)
+        generate_pclp_reports.generate_reports(self.pclp_input, output_gitlab = report_name)
+        
+        
+        if args.pclp_output_html:
+            print("Creating PC-lint Plus Findings")
+            import generate_pclp_reports 
+            generate_pclp_reports.generate_html_report(self.FullMP, self.pclp_input, self.pclp_output_html)
+            
     def runReports(self):
         if self.aggregate:
             self.manageWait.exec_manage_command ("--create-report=aggregate --output=" + self.mpName + "_aggregate_report.html")
@@ -325,6 +318,7 @@ if __name__ == '__main__':
     metricsGroup.add_argument('--junit', help='Generate test results in Junit xml format', action="store_true", default = False)
     metricsGroup.add_argument('--sonarqube', help='Generate test results in SonarQube Generic test execution report format (CppUnit)', action="store_true", default = False)
     metricsGroup.add_argument('--pclp_input', help='Generate static analysis results from PC-lint Plus XML file to generic static analysis format (codequality)', action="store", default = None)
+    metricsGroup.add_argument('--pclp_output_html', help='Generate static analysis results from PC-lint Plus XML file to an HTML output', action="store", default = "pclp_findings.html")
     metricsGroup.add_argument('--exit_with_failed_count', help='Returns failed test case count as script exit.  Set a value to indicate a percentage above which the job will be marked as failed', 
                                nargs='?', default='not present', const='(default 0)')
 
@@ -381,7 +375,7 @@ if __name__ == '__main__':
         vcExec.runSonarQubeMetrics()
 
     if args.pclp_input:
-        vcExec.runPcLintPlusMetrics(args.pclp_input)
+        vcExec.runPcLintPlusMetrics()
 
     if args.aggregate or args.metrics or args.fullstatus:
         vcExec.runReports()
