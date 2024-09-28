@@ -29,6 +29,11 @@ import shutil
 
 from bs4 import BeautifulSoup
 
+try:    
+    from safe_open import open
+except:
+    pass
+
 import re
 def parse_text_files(mpName):
     header = """

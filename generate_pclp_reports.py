@@ -8,12 +8,28 @@
 #####################################################################
 
 import argparse
-import html
+try:
+    from html import escape
+except ImportError:
+    # html not standard module in Python 2.
+    from cgi import escape
 import json
 import xml.etree.ElementTree
 import os
+import pathlib
 
 from pprint import pprint
+
+from vector.apps.DataAPI.vcproject_api import VCProjectApi
+from vector.apps.ReportBuilder.custom_report import CustomReport
+from vcast_utils import checkVectorCASTVersion
+try:
+    from safe_open import open
+except:
+    pass
+        
+g_msgs = []
+g_fullMpName = ""
 
 # PC-lint Plus message representation and parsing
 
@@ -31,14 +47,36 @@ def parse_msgs(filename):
     # save the base directory of the input file
     directoryName = os.path.dirname(filename)
     
+    try:
+        basepath = os.environ['WORKSPACE'].replace("\\","/") + "/"
+    except:
+        basepath = os.getcwd().replace("\\","/") + "/"
     
-    tree = xml.etree.ElementTree.parse(filename)
-    root = tree.getroot()
+    with open(filename, "r") as fd:
+        pcplXmlData = fd.read()
+    
+    index = pcplXmlData.find('<')
+    
+    # If '<' is found, slice the string to remove characters before it
+    if index != -1:
+        pcplXmlData = pcplXmlData[index:]
+
+    root = xml.etree.ElementTree.fromstring(pcplXmlData)
+    # pprint(dump(tree))
+    # root = tree.getroot()
     msgs = []
     last_primary_msg = None
     for child in root:
+        try:
+            adjustedFname = os.path.relpath(child.find('file').text,basepath).replace("\\","/")
+        except:
+            adjustedFname = child.find('file').text
+                
+        if adjustedFname is None:
+            adjustedFname = "GLOBAL"
+            
         msg = Message(
-            child.find('file').text,
+            adjustedFname,
             child.find('line').text,
             child.find('type').text,
             child.find('code').text,
@@ -55,6 +93,7 @@ def parse_msgs(filename):
         else:
             last_primary_msg = msg
             msgs.append(msg)
+            
     return msgs
 
 # HTML summary output
@@ -102,22 +141,225 @@ def build_html_table(column_headers, data_source, row_generator):
     for header in column_headers:
         out += "<th scope=\"col\">"
         out += header
-        out += "</th>"
+        out += "</th>\n"
     out += "</tr>"
     for item in data_source:
         out += "<tr>"
         row = row_generator(item)
+        if 'Total' in row:
+            boldStart = "<b>"
+            boldEnd   = "</b>"
+        else:
+            boldStart = ""
+            boldEnd   = ""
         for data in row:
             out += "<td>"
-            out += str(data)
-            out += "</td>"
-        out += "</tr>"
+            out += boldStart + str(data) + boldEnd
+            out += "</td>\n"
+        out += "</tr>\n"
     out += "</table>"
     return out
 
 def format_benign_zero(x):
     return str(x) if x != 0 else "<span class=\"zero\">" + str(x) + "</span>"
 
+def generate_details():
+    global g_msgs
+    msgs = g_msgs
+    
+    out = ""
+    out += build_html_table(
+        ['File', 'Line', 'Category', '#', 'Description'],
+        msgs,
+        lambda msg: [
+            "<span class=\"filename\"><a href=\"#" + escape(msg.file).replace("\\","/").replace("/","_").replace(".","_") + "_" + msg.line + "\">" + escape(msg.file) +  "</a></span>",
+            msg.line if msg.line != "0" else "",
+            msg.category,
+            msg.number,
+            escape(msg.text)
+        ]
+    )
+
+    return out
+
+def generate_summaries():
+    
+    global g_msgs
+    msgs = g_msgs
+    out = ""
+
+    file_summaries = summarize_files(msgs)
+    summary_total = FileSummary('Total')
+    for file in file_summaries.values():
+        summary_total.msg_count += file.msg_count
+        summary_total.error_count += file.error_count
+        summary_total.warning_count += file.warning_count
+        summary_total.info_count += file.info_count
+        summary_total.note_count += file.note_count
+        summary_total.misra_count += file.misra_count
+    file_summaries['Total'] = summary_total
+    out += build_html_table(
+        ['File', 'Messages','Error','Warning','Info','Note','MISRA'],
+        file_summaries.values(),
+        lambda file: [ 
+            ("<span class=\"filename\"><a href=\"#" + escape(file.filename).replace("\\","/").replace("/","_").replace(".","_") + "\">" + escape(file.filename) + " </a></span>") if file.filename != 'Total' else file.filename,
+            format_benign_zero(file.msg_count),
+            format_benign_zero(file.error_count),
+            format_benign_zero(file.warning_count),
+            format_benign_zero(file.info_count),
+            format_benign_zero(file.note_count),
+            format_benign_zero(file.misra_count)
+        ]
+    )
+    
+    return out
+
+def generate_source():
+    
+    global g_msgs
+    msgs = g_msgs
+    
+    global g_fullMpName
+    fullMpName = g_fullMpName
+    
+    output = "<h4>No Source Infomation avialable</h4>"
+    
+    file_summaries = summarize_files(msgs)
+    if not checkVectorCASTVersion(21, True):
+        print("XXX Cannot generate Source Code section of the PC-Line Report report")
+        print("XXX The Summary and File Detail sections are present")
+        print("XXX If you'd like to see the Source Code section of the PC-Line Report, please upgrade VectorCAST")
+        
+    filenames = []
+    filenames = list(map(lambda file: file.filename, file_summaries.values()))
+
+    filename_dict = {file.filename.replace("\\","/").lower(): file.filename for file in file_summaries.values()}
+    
+    # Use a lambda inside map to create a dictionary keyed by file and then by line
+    messages_by_file_and_line = {}
+
+    # Group by file
+    list(map(lambda msg: messages_by_file_and_line.setdefault(msg.file, {})
+             .setdefault(msg.line, msg), msgs))    
+    
+    if fullMpName is None:
+        return output
+        
+    api = VCProjectApi(fullMpName)
+
+    localUnits = api.project.cover_api.SourceFile.all()
+    localUnits.sort(key=lambda x: (x.name))
+
+    try:
+        basepath = os.environ['WORKSPACE'].replace("\\","/") + "/"
+    except:
+        basepath = os.getcwd().replace("\\","/") + "/"
+        
+    output = "" 
+    
+    listOfContent = []
+    for f in localUnits:
+        try:
+            adjustedFname = os.path.relpath(f.display_path,basepath).replace("\\","/").lower()
+        except:
+            adjustedFname = f.display_path.lower()
+
+        if adjustedFname not in filename_dict.keys():
+            continue
+        
+        fname = filename_dict[adjustedFname]
+        orig_fname = fname;
+        
+        smap = dict()
+        
+        for line in f.iterate_coverage():
+            smap[line.line_number] = line
+                           
+        basename = os.path.basename(fname)
+        
+        filename_anchor = orig_fname.replace("\\","_").replace("/","_").replace(".","_")
+        
+        content = { 
+            "title": basename,
+            "link" : filename_anchor
+        }
+        
+        listOfContent.append(content)
+
+        output += "<h4 id=\"" + filename_anchor + "\">Coverage for " + escape(fname) + "</h4>\n"
+        output += "<pre class=\"aggregate-coverage\">\n"
+            
+        if not os.path.isfile(fname) and not os.path.isfile(fname + ".vcast.bak"):
+            sys.stderr.write(fname + " not found in the current source tree...skipping\n")
+            return 
+                
+        if os.path.isfile(fname + ".vcast.bak"):
+            fname = fname + ".vcast.bak"
+            
+        with open(fname , 'r') as fh:
+            # read and replace the line ending for consistency
+            contents = fh.read()
+            contents = contents.replace("\r\n", "\n").replace("\r","\n")
+            for lineno, line in enumerate(contents.splitlines(), start=1):
+            
+                # get all the statements
+                srcLine = smap[lineno]
+
+                lineno_str = str(lineno)
+                lineno_str_justified = str(lineno).ljust(6)
+                esc_line = escape(line)
+                
+                if lineno_str in messages_by_file_and_line[orig_fname].keys():
+                    msg = messages_by_file_and_line[orig_fname][lineno_str]
+                    esc_msg_text = escape(msg.text)
+                    tooltip = msg.category + " " + str(msg.number) + " " + esc_msg_text              
+                    anchor =  filename_anchor + "_" + lineno_str
+                    output += "<div id=\"" + anchor + "\" class=\"tooltip\">"
+                    output += "<span class=\"na-cvg\">"
+                    output += lineno_str_justified + " <span class=\"tooltiptext\"> " + tooltip + "</span>" + esc_line
+                    output += "</span>"
+                    output += "</div>"
+                else:
+                    output += "<span class=\"na-cvg\">" + lineno_str_justified + " " +  esc_line + "</span>"
+                    
+                output += "\n"
+
+            output += "</pre>"
+            
+    return output, listOfContent
+
+def generate_html_report(mpName: str, input_xml: str, output_html: str) -> None:
+        
+    global g_fullMpName
+    global g_msgs
+    g_fullMpName = mpName
+    g_msgs = parse_msgs(input_xml)
+    
+    if output_html is None:
+        output_html = "pclp_findings.html"
+        
+    with VCProjectApi(mpName) as api:
+        # Set custom report directory to the where this script was
+        # found. Must contain sections/index_section.py
+        rep_path = pathlib.Path(__file__).parent.resolve()
+        CustomReport.report_from_api(
+                api=api,
+                title="PC-Lint Plus Results",
+                report_type="INDEX_FILE",
+                formats=["HTML"],
+                output_file=output_html,
+                sections=['CUSTOM_HEADER', 'REPORT_TITLE', 'TABLE_OF_CONTENTS','PCLP_SUMMARY_SECTION','PCLP_DETAILS_SECTION','PCLP_SOURCE_SECTION', 'CUSTOM_FOOTER'],
+                customization_dir=rep_path)
+
+def has_any_coverage(line):
+    
+    return (line.metrics.statements + 
+        line.metrics.branches + 
+        line.metrics.mcdc_branches + 
+        line.metrics.mcdc_pairs + 
+        line.metrics.functions +
+        line.metrics.function_calls)
+    
 def emit_html(msgs):
     out = ""
     out += "<!DOCTYPE html><html>"
@@ -135,43 +377,12 @@ def emit_html(msgs):
     out += "<body>"
     out += "<div>"
     out += "<h1>Report</h1>"
-    out += "<h2>Summary</h2>"
-    file_summaries = summarize_files(msgs)
-    summary_total = FileSummary('Total')
-    for file in file_summaries.values():
-        summary_total.msg_count += file.msg_count
-        summary_total.error_count += file.error_count
-        summary_total.warning_count += file.warning_count
-        summary_total.info_count += file.info_count
-        summary_total.note_count += file.note_count
-        summary_total.misra_count += file.misra_count
-    file_summaries['Total'] = summary_total
-    out += build_html_table(
-        ['File', 'Messages','Error','Warning','Info','Note','MISRA'],
-        file_summaries.values(),
-        lambda file: [ 
-            ("<span class=\"filename\">" + html.escape(file.filename) + "</span>") if file.filename != 'Total' else file.filename,
-            format_benign_zero(file.msg_count),
-            format_benign_zero(file.error_count),
-            format_benign_zero(file.warning_count),
-            format_benign_zero(file.info_count),
-            format_benign_zero(file.note_count),
-            format_benign_zero(file.misra_count)
-        ]
-    )
+    out += generate_summaries(msgs)
+    out += generate_details(msgs)
+
+    out += generate_source(full_mp_name, file_summaries, msgs, output_filename)    
+    
     out += "<br>"
-    out += "<h2>Details</h2>"
-    out += build_html_table(
-        ['File', 'Line', 'Category', '#', 'Description'],
-        msgs,
-        lambda msg: [
-            "<span class=\"filename\">" + html.escape(msg.file) + "</span>",
-            msg.line if msg.line != "0" else "",
-            msg.category,
-            msg.number,
-            html.escape(msg.text)
-        ]
-    )
     out += "</div>"
     out += "</body>"
     out += "</html>\n"
@@ -282,8 +493,7 @@ def gitlab_serialize_msg(msg):
     
 
     return return_items
-
-
+    
 def emit_gitlab(msgs):
     return json.dumps(msgs, default=gitlab_serialize_msg, indent=2)
 
@@ -291,15 +501,19 @@ def emit_gitlab(msgs):
 
 def write_output(output, filename):
     with open(filename, 'w') as file:
-        file.write(output)
+        try:
+            file.write(output)
+        except:
+            file.write(output.decode('utf-8'))
         
-def generate_reports(input_xml, output_text = None, output_html = None, output_json = None, output_gitlab = None):
+def generate_reports(input_xml, output_text = None, output_html = None, output_json = None, output_gitlab = None, full_mp_name = None):
     msgs = parse_msgs(input_xml)
     msgs.sort(key=lambda msg: (msg.file == "", msg.file, int(msg.line) if msg.line != "" else 0))
     if output_text:
         write_output(emit_text(msgs), output_text)
     if output_html:
-        write_output(emit_html(msgs), output_html)
+        generate_html_report(msgs, output_html)
+        #write_output(emit_html(msgs), output_html)
     if output_json:
         write_output(emit_json(msgs), output_json)
     if output_gitlab:
@@ -312,13 +526,26 @@ def main():
     parser.add_argument('--output-html', action='store', help='HTML output filename', default = None, required=False)
     parser.add_argument('--output-json', action='store', help='JSON output filename', default = None, required=False)
     parser.add_argument('--output-gitlab', action='store', help='GitLab output filename', default = None, required=False)
+    parser.add_argument('--vc-project', action='store', help='VectorCAST Project Name.  Used for source view', dest="full_mp_name", default = None, required=False)
+    parser.add_argument('-g', '--gen-lint-xml-cmd', action='store', help='Command to genreate lint XML files', dest="gen_lint_xml_cmd", default = None, required=False)
     
     args = parser.parse_args()
+    if args.gen_lint_xml_cmd is not None:
+        subprocess.run(args.gen_lint_xml_cmd)
 
     if not (args.output_text or args.output_html or args.output_json or args.output_gitlab):
         parser.error("please specify one or more outputs using the '--output-<FORMAT>=<FILENAME>' options")
         
     generate_reports(args.input_xml, args.output_text, args.output_html, args.output_json, args.output_gitlab)
 
+    ## if opened from VectorCAST GUI...
+    if (args.full_mp_name is not None) and (args.output_html is not None) and (os.getenv('VCAST_PROG_STARTED_FROM_GUI') == "true"):
+        from vector.lib.core import VC_Report_Client
+
+        # Open report in VectorCAST GUI
+        report_client = VC_Report_Client.ReportClient()
+        if report_client.is_connected():
+            report_client.open_report(args.output_html, "PC Lint Plus results")
+            
 if __name__ == "__main__":
     main()

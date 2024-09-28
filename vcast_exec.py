@@ -47,6 +47,7 @@ except:
     import prevcast_parallel_build_execute as parallel_build_execute
 
 from vcast_utils import checkVectorCASTVersion, dump
+import generate_sonarqube_testresults 
 
 class VectorCASTExecute(object):
 
@@ -175,8 +176,24 @@ class VectorCASTExecute(object):
         except:
             pass
 
-    def generateIndexHtml(self):        
-        create_index_html(self.FullMP)
+    
+    def generateIndexHtml(self):
+        try:
+            prj_dir = os.environ['CI_PROJECT_DIR'].replace("\\","/") + "/"
+        except:
+            prj_dir = os.getcwd().replace("\\","/") + "/"
+
+        tempHtmlReportList = glob.glob("*.html")
+        tempHtmlReportList += glob.glob(os.path.join(args.html_base_dir, "*.html"))
+        htmlReportList = []
+
+        for report in tempHtmlReportList:
+            if "index.html" not in report:
+                report = report.replace("\\","/")
+                report = report.replace(prj_dir,"")
+                htmlReportList.append(report)
+        
+        create_index_html.run(htmlReportList)
     
     def runJunitMetrics(self):
         print("Creating JUnit Metrics")
@@ -226,8 +243,6 @@ class VectorCASTExecute(object):
             cobertura.generateCoverageResults(self.FullMP, self.azure, self.xml_data_dir, verbose = self.verbose, extended=self.cobertura_extended)
 
     def runSonarQubeMetrics(self):
-        import generate_sonarqube_testresults 
-        
         if not checkVectorCASTVersion(21):
             print("Cannot create SonarQube metrics. Please upgrade VectorCAST")
         else:
@@ -235,14 +250,12 @@ class VectorCASTExecute(object):
             generate_sonarqube_testresults.run(self.FullMP, self.xml_data_dir)
         
     def runPcLintPlusMetrics(self):
-        
         print("Creating PC-lint Plus Metrics")
         import generate_pclp_reports 
         os.makedirs(os.path.join(self.xml_data_dir,"pclp"))
         report_name = os.path.join(self.xml_data_dir,"pclp","gl-code-quality-report.json")
-        print("PC-lint Plus Metrics file: ", report_name)
-        generate_pclp_reports.generate_reports(self.pclp_input, output_gitlab = report_name)
-        
+        print("PC-lint Plus Metrics file: " + report_name)
+        generate_pclp_reports.generate_reports(input_xml, output_gitlab = report_name)
         
         if args.pclp_output_html:
             print("Creating PC-lint Plus Findings")

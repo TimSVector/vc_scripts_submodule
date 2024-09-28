@@ -1,7 +1,7 @@
 #
 # The MIT License
 #
-# Copyright 2020 Vector Informatik, GmbH.
+# Copyright 2024 Vector Informatik, GmbH.
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -37,6 +37,11 @@ try:
         from Queue import Queue, Empty
 except ImportError:
         from queue import Queue, Empty  # python 3.x
+
+try:
+    from safe_open import open
+except:
+    pass    
  
 class ManageWait(object):
     def __init__(self, verbose, command_line, wait_time, wait_loops, mpName = "", useCI = ""):
@@ -89,7 +94,7 @@ class ManageWait(object):
         if self.verbose:
             print (self.command_line)
         return self.exec_manage(silent)
-
+        
     def exec_manage(self, silent=False):
         try:
             with open("command.log", 'a', encoding=self.encFmt) as logfile:
@@ -105,7 +110,7 @@ class ManageWait(object):
         
         if self.verbose:
             logfile.write( "\nVerbose: %s\n" % callStr)
-            
+
         # capture the output of the manage call
         loop_count = 0
         while 1:

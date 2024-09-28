@@ -42,12 +42,17 @@ except:
     from vector.apps.DataAPI.api import Api as UnitTestApi
     from vector.apps.DataAPI.models import TestCase
 
+try:
+    from vector.apps.DataAPI.vcproject_api import VCProjectApi
+except:
+    pass
+
 from vector.apps.DataAPI.cover_api import CoverApi
 from vector.apps.ReportBuilder.custom_report import fmt_percent
 from operator import attrgetter
 from vector.enums import COVERAGE_TYPE_TYPE_T
 from vector.enums import ENVIRONMENT_STATUS_TYPE_T
-
+from vcast_utils import dump
 import hashlib 
 
 def dummy(*args, **kwargs):

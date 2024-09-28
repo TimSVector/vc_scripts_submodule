@@ -3,21 +3,21 @@ import subprocess
 import os
 import re
 import sys
+import tee_print
 import glob
 try:
     from vector.apps.DataAPI.vcproject_models import EnvironmentType
 except:
     pass
 
-
 manageCMD=os.environ['VECTORCAST_DIR'] + "/manage"
 
 
-def printOutput(somethingPrinted, ManageProjectName, output):
+def printOutput(somethingPrinted, ManageProjectName, output, teePrint):
     if not somethingPrinted:
-        print ("No environments found in " + ManageProjectName + ". Please check configuration")
+        teePrint.teePrint ("No environments found in " + ManageProjectName + ". Please check configuration")
     else:
-        print(output)
+        teePrint.teePrint(output)
         
 def getBuildDirectory(compiler , testsuite , env_name, buildDirInfo):
     for line in buildDirInfo:
@@ -93,6 +93,7 @@ def checkForEnvChanges(vcm_fname, build_dir, env_name):
 def printEnvInfoDataAPI(api, printData = True, printEnvType = False):
     somethingPrinted = False
     output = ""
+    
     for env in api.Environment.all():
         
         if not env.is_active:
@@ -105,12 +106,12 @@ def printEnvInfoDataAPI(api, printData = True, printEnvType = False):
                 output += "ST: "
             else:
                 output += "UT: "
-                
         output += "%s %s %s\n" % (env.compiler.name , env.testsuite.name , env.name)
-
+   
     if printData:
-       printOutput(somethingPrinted, api.vcm_file, output)
-
+        with tee_print.TeePrint() as teePrint:
+            printOutput(somethingPrinted, api.vcm_file, output, teePrint)
+            
     return output
     
 def checkGroupOrEnv(str):
@@ -178,7 +179,8 @@ def printEnvInfoNoDataAPI(ManageProjectName, printData = True, printEnvType = Fa
             somethingPrinted = True;
 
     if printData:
-       printOutput(somethingPrinted, ManageProjectName, output)
+        with tee_print.TeePrint() as teePrint:
+            printOutput(somethingPrinted, ManageProjectName, output, teePrint)
 
     return output
  
