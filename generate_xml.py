@@ -481,13 +481,10 @@ class GenerateXml(BaseGenerateXml):
                         for func in unit.functions:
                             if not func.is_non_testable_stub:
                                 for tc in func.testcases:
-                                    try:
-                                        vctMap = tc.is_vct_map
-                                    except:
-                                        vctMap = False
-                                    if not tc.is_csv_map and not vctMap:
+                                    if not self.isTcPlaceHolder():
                                         if not tc.for_compound_only or tc.testcase_status == "TCR_STRICT_IMPORT_FAILED":
-                                            self.write_testcase(tc, tc.function.unit.name, tc.function.display_name)
+                                            if not tc.is_coded_tests_map:
+                                                self.write_testcase(tc, tc.function.unit.name, tc.function.display_name)
 
             except AttributeError as e:
                 import traceback
@@ -495,6 +492,22 @@ class GenerateXml(BaseGenerateXml):
 
         self.end_test_results_file()
                 
+    def isTcPlaceHolder(self, tc):
+        placeHolder = False
+        try:
+            vctMap = tc.is_vct_map
+        except:
+            vctMap = False
+        try:
+            vcCodedTestMap = tc.is_coded_tests_map
+        except:
+            vcCodedTestMap = False
+            
+        # Placeholder "testcases" that need to be ignored
+        if tc.is_csv_map or vctMap or vcCodedTestMap:   
+            placeHolder = True
+            
+        return placeHolder 
 
 #
 # Internal - start the JUnit XML file
@@ -537,13 +550,8 @@ class GenerateXml(BaseGenerateXml):
         failed = 0
         success = 0                                            
         
-        for tc in self.api.TestCase.all():
-            try:
-                vctMap = tc.is_vct_map
-            except:
-                vctMap = False
-        
-            if (not tc.for_compound_only or tc.testcase_status == "TCR_STRICT_IMPORT_FAILED") and not tc.is_csv_map and not vctMap:
+        for tc in self.api.TestCase.all():        
+            if (not tc.for_compound_only or tc.testcase_status == "TCR_STRICT_IMPORT_FAILED") and not self.isTcPlaceHolder():
                 if not tc.passed:
                     self.failed_count += 1
                     failed += 1
