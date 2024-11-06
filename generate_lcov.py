@@ -43,15 +43,6 @@ from vcast_utils import dump, checkVectorCASTVersion
 
 fileList = []
 
-def dump(obj):
-    if hasattr(obj, '__dict__'): 
-        return vars(obj) 
-    else:
-        try:
-            return {attr: getattr(obj, attr, None) for attr in obj.__slots__} 
-        except:
-            return str(obj)
-
 def getCoveredFunctionCount(source):
     if len(source.functions) == 0:
         return 0,0
@@ -295,5 +286,4 @@ if __name__ == '__main__':
         report_client = VC_Report_Client.ReportClient()
         if report_client.is_connected():
             report_client.open_report("out/index.html", "lcov Results")
-
 
