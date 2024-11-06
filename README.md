@@ -32,9 +32,11 @@ The api for vcast_exec.py follows:
 
 ```
     usage: vcast_exec.py [-h] [--build-execute] [--build | --incremental]
-                         [--output_dir OUTPUT_DIR] [--html_base_dir HTML_BASE_DIR]
-                         [--cobertura] [--cobertura_extended] [--junit]
-                         [--sonarqube] [--pclp_input PCLP_INPUT]
+                         [--output_dir OUTPUT_DIR] [--source_root SOURCE_ROOT]
+                         [--html_base_dir HTML_BASE_DIR] [--cobertura]
+                         [--cobertura_extended] [--lcov] [--junit] [--sonarqube]
+                         [--pclp_input PCLP_INPUT]
+                         [--pclp_output_html PCLP_OUTPUT_HTML]
                          [--exit_with_failed_count [EXIT_WITH_FAILED_COUNT]]
                          [--aggregate] [--metrics] [--fullstatus] [--jobs JOBS]
                          [--ci] [-l LEVEL] [-e ENVIRONMENT] [--gitlab | --azure]
@@ -60,18 +62,25 @@ The api for vcast_exec.py follows:
       --output_dir OUTPUT_DIR
                             Set the base directory of the xml_data directory.
                             Default is the workspace directory
+      --source_root SOURCE_ROOT
+                            Set the absolute path for the source file in coverage
+                            reporting
       --html_base_dir HTML_BASE_DIR
                             Set the base directory of the html_reports directory.
                             The default is the workspace directory
       --cobertura           Generate coverage results in Cobertura xml format
       --cobertura_extended  Generate coverage results in extended Cobertura xml
                             format
+      --lcov                Generate coverage results in an LCOV format
       --junit               Generate test results in Junit xml format
       --sonarqube           Generate test results in SonarQube Generic test
                             execution report format (CppUnit)
       --pclp_input PCLP_INPUT
                             Generate static analysis results from PC-lint Plus XML
                             file to generic static analysis format (codequality)
+      --pclp_output_html PCLP_OUTPUT_HTML
+                            Generate static analysis results from PC-lint Plus XML
+                            file to an HTML output
       --exit_with_failed_count [EXIT_WITH_FAILED_COUNT]
                             Returns failed test case count as script exit. Set a
                             value to indicate a percentage above which the job
@@ -103,9 +112,14 @@ The api for vcast_exec.py follows:
       --print_exc           Prints exceptions
       --timing              Prints timing information for metrics generation
       -v, --verbose         Enable verbose output
+
 ```
 
 # Change log
+11/2024
+* Added option for source root to add an absolute path to the beginning of the relatives coverage paths
+* Fixed a lcov coverage error when VC Project coverage is not in Source File Perspective mode
+
 9/2024
 * Initial submodule commit
 
