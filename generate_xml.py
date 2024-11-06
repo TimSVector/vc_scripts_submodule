@@ -481,7 +481,7 @@ class GenerateXml(BaseGenerateXml):
                         for func in unit.functions:
                             if not func.is_non_testable_stub:
                                 for tc in func.testcases:
-                                    if not self.isTcPlaceHolder():
+                                    if not self.isTcPlaceHolder(tc):
                                         if not tc.for_compound_only or tc.testcase_status == "TCR_STRICT_IMPORT_FAILED":
                                             if not tc.is_coded_tests_map:
                                                 self.write_testcase(tc, tc.function.unit.name, tc.function.display_name)
@@ -551,7 +551,7 @@ class GenerateXml(BaseGenerateXml):
         success = 0                                            
         
         for tc in self.api.TestCase.all():        
-            if (not tc.for_compound_only or tc.testcase_status == "TCR_STRICT_IMPORT_FAILED") and not self.isTcPlaceHolder():
+            if (not tc.for_compound_only or tc.testcase_status == "TCR_STRICT_IMPORT_FAILED") and not self.isTcPlaceHolder(tc):
                 if not tc.passed:
                     self.failed_count += 1
                     failed += 1
