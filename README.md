@@ -90,8 +90,8 @@ The api for vcast_exec.py follows:
       VectorCAST Manage reports that can be generated
 
       --aggregate           Generate aggregate coverage report VectorCAST Project
-      --metrics             Genenereate metrics reports for VectorCAST Project
-      --fullstatus          Genenereate full status reports for VectorCAST Project
+      --metrics             Generate metrics reports for VectorCAST Project
+      --fullstatus          Generate full status reports for VectorCAST Project
 
     Build/Execution Options:
       Options that effect build/execute operation
