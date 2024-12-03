@@ -1,10 +1,6 @@
 # General
 
-Integration between VectorCAST and GitLab Pipelines
-
-# Installation
-
-This repository uses a git submodule so make sure when you clone this repository, clone with _--recurse-submodules_ option
+Integration between VectorCAST and CI/CD tools
 
 # Installation
 
