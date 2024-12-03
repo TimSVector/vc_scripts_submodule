@@ -483,15 +483,17 @@ class GenerateXml(BaseGenerateXml):
                                 for tc in func.testcases:
                                     if not self.isTcPlaceHolder(tc):
                                         if not tc.for_compound_only or tc.testcase_status == "TCR_STRICT_IMPORT_FAILED":
-                                            if not tc.is_coded_tests_map:
-                                                self.write_testcase(tc, tc.function.unit.name, tc.function.display_name)
+                                            self.write_testcase(tc, tc.function.unit.name, tc.function.display_name)
 
             except AttributeError as e:
                 import traceback
                 traceback.print_exc()
 
         self.end_test_results_file()
-                
+
+#
+# GenerateXml - write the end of the jUnit XML file and close it
+#
     def isTcPlaceHolder(self, tc):
         placeHolder = False
         try:
