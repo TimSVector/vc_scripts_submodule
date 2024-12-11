@@ -239,7 +239,7 @@ def runGcovResults(api, verbose = False, testName = "", source_root = "") :
                             branch_number += 1
             
 
-            if not any_return_found:
+            if True: #not any_return_found:
                 if verbose: print("counting last line: ", func.name, line.line_number,last_line)
                 if any_line_covered > 0:
                     DA.append("DA:" + str(line.line_number) + ",1")
