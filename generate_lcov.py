@@ -173,17 +173,18 @@ def runGcovResults(api, verbose = False, testName = "", source_root = "") :
         
         LH = 0
         LF = 0
-        
+
         file = fileDict[path]        
         new_path = os.path.join(source_root,path.rsplit('/',1)[0])
 
+        cap_correct_fname = file.display_path.replace("\\","/").rsplit("/",1)[-1]
         output += "TN:" + testName + "\n"
         new_path = new_path.replace("\\","/")
-        output += "SF:" + new_path + "/" + file.name + "\n"
+        output += "SF:" + new_path + "/" + cap_correct_fname + "\n"
 
         for func in file.functions:
             func_name_line_number = get_function_name_line_number(file.display_path, func.name, func.start_line)
-            fName = func.name + func.instrumented_functions[0].parameterized_name.replace(func.name,"",1)
+            fName = func.mangled_name #func.name + func.instrumented_functions[0].parameterized_name.replace(func.name,"",1)
             FN.append("FN:" + str(func_name_line_number) + "," + fName)
             if has_anything_covered(func) > 0:
                 FNDA.append("FNDA:1" + "," + fName)
