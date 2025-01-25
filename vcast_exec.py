@@ -215,7 +215,7 @@ class VectorCASTExecute(object):
             self.useStartLine = False
         
         self.failed_count, self.passed_count = generate_results.buildReports(self.FullMP,self.level,self.environment, 
-                True, self.timing, xml_data_dir = self.xml_data_dir, useStartLine=self.useStartLine, teePrint = None, use_cte = self.use_cte)
+                True, self.timing, xml_data_dir = self.xml_data_dir, useStartLine=self.useStartLine, use_cte = self.use_cte)
         
         # calculate the failed percentage
         if (self.failed_count + self.passed_count > 0):
