@@ -227,8 +227,7 @@ class VectorCASTExecute(object):
                 use_ci = self.ci,
                 xml_data_dir = self.xml_data_dir,
                 useStartLine = self.useStartLine)
-        
-        
+                
         # calculate the failed percentage
         if (self.failed_count + self.passed_count > 0):
             self.failed_pct = 100 * self.failed_count/ (self.failed_count + self.passed_count)
