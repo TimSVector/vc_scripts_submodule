@@ -331,9 +331,18 @@ def useNewAPI(FullManageProjectName, manageEnvs, level, envName, use_ci, xml_dat
 # build the Test Case Management Report for Manage Project
 # envName and level only supplied when doing reports for a sub-project
 # of a multi-job
-def buildReports(FullManageProjectName = None, level = None, envName = None, generate_individual_reports = True, 
-        timing = False, cbtDict = None, use_archive_extract = False, 
-        report_only_failures = False, no_full_report = False, use_ci = "", xml_data_dir = "xml_data", useStartLine = False):
+def buildReports(FullManageProjectName = None, 
+        level = None, 
+        envName = None, 
+        generate_individual_reports = True, 
+        timing = False, 
+        cbtDict = None, 
+        use_archive_extract = False, 
+        report_only_failures = False, 
+        no_full_report = False, 
+        use_ci = "", 
+        xml_data_dir = "xml_data", 
+        useStartLine = False):
 
     if timing:
         print("Start: " + str(time.time()))
