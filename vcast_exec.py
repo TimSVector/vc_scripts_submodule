@@ -300,13 +300,16 @@ class VectorCASTExecute(object):
         self.manageWait.exec_manage_command ("--status")
         self.manageWait.exec_manage_command ("--force --release-locks")
         self.manageWait.exec_manage_command ("--config VCAST_CUSTOM_REPORT_FORMAT=HTML")
-        
+
         if self.useLevelEnv:
             output = "--output " + self.mpName + self.reportsName + "_rebuild.html"
         else:
             output = ""
             
         if self.jobs != "1" and checkVectorCASTVersion(20, True):
+            
+            # setup project for parallel execution
+            self.manageWait.exec_manage_command ("--config VCAST_DEPENDENCY_CACHE_DIR=./vcqik")
 
             # should work for pre-vcast parallel_build_execute or vcast parallel_build_execute
             pstr = "--project " + self.FullMP
