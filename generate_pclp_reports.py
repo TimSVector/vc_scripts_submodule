@@ -20,6 +20,7 @@ import os
 from pprint import pprint
 
 from vcast_utils import checkVectorCASTVersion
+
 try:
     from safe_open import open
 except:
@@ -243,6 +244,7 @@ def generate_source():
         return output
         
     from vector.apps.DataAPI.vcproject_api import VCProjectApi
+
     api = VCProjectApi(fullMpName)
 
     localUnits = api.project.cover_api.SourceFile.all()

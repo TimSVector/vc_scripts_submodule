@@ -176,6 +176,7 @@ def runGcovResults(api, verbose = False, testName = "", source_root = "") :
         
         file = fileDict[path]        
         new_path = os.path.join(source_root,path.rsplit('/',1)[0])
+
         output += "TN:" + testName + "\n"
         new_path = new_path.replace("\\","/")
         

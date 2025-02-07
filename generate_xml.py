@@ -458,7 +458,7 @@ class GenerateXml(BaseGenerateXml):
                                 print (level, st.name, pass_fail_rerun)
                             self.write_testcase(st, level, st.name)
                 from generate_qa_results_xml import saveQATestStatus
-                saveQATestStatus(self.FullManageProjectName, self.use_ci)
+                saveQATestStatus(self.FullManageProjectName)
 
                 api.close()
 
