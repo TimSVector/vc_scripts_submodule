@@ -84,8 +84,9 @@ class DistributeRemoteJobs (object):
         
         # not sure how to do this with kubernetes
         
-        with VCProjectApi(self.manageProject) as api:
-            env_list = api.Environment.filter(is_active__equals=True)
+        api = VCProjectApi(self.manageProject)
+        env_list = api.Environment.filter(is_active__equals=True)
+        api.close()
         
         for env in env_list:
             comp_name = env.compiler.name
