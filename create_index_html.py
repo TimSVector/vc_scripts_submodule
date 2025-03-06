@@ -2,13 +2,7 @@ import os
 import sys
 import argparse
 import glob
-import pathlib
 
-<<<<<<< HEAD
-=======
-from vector.apps.DataAPI.vcproject_api import VCProjectApi
-from vector.apps.ReportBuilder.custom_report import CustomReport
->>>>>>> 8640256 (update from gitlab)
 
 class cd:
     """Context manager for changing the current working directory"""
@@ -57,7 +51,6 @@ def getReportName(filename):
         
     return reportName, reportType
 
-<<<<<<< HEAD
 def create_index_html(mpName):
     import pathlib
     from vector.apps.DataAPI.vcproject_api import VCProjectApi
@@ -79,23 +72,6 @@ def create_index_html(mpName):
 
     api.close()
     
-=======
-def create_index_html(mpName: str) -> None:
-    with VCProjectApi(mpName) as api:
-        # Set custom report directory to the where this script was
-        # found. Must contain sections/index_section.py
-        rep_path = pathlib.Path(__file__).parent.resolve()
-        output_file="index.html"
-        CustomReport.report_from_api(
-                api=api,
-                title="HTML Reports",
-                report_type="INDEX_FILE",
-                formats=["HTML"],
-                output_file=output_file,
-                sections=['CUSTOM_HEADER', 'REPORT_TITLE', 'TABLE_OF_CONTENTS','INDEX_SECTION', 'CUSTOM_FOOTER'],
-                customization_dir=rep_path)
-
->>>>>>> 8640256 (update from gitlab)
 def create_index_html_body ():
     
     tempHtmlReportList = glob.glob("*.html")
@@ -176,8 +152,5 @@ def main():
     return run(htmlReportList)
 
 if __name__ == "__main__" :
-    if len(sys.argv) > 0:
-        ret = create_custom_index_html()
-    else:
-        ret = main()
+    ret = main()
     sys.exit (ret)

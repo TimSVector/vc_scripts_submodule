@@ -28,12 +28,8 @@ from managewait import ManageWait
 
 import cobertura
 import generate_lcov
-<<<<<<< HEAD
 import patch_rgw_directory as rgw
 
-=======
-from create_index_html import create_index_html
->>>>>>> 8640256 (update from gitlab)
 try:
     import generate_results 
 except:    
@@ -182,7 +178,6 @@ class VectorCASTExecute(object):
         except:
             pass
 
-<<<<<<< HEAD
     
     def generateIndexHtml(self):
         if not checkVectorCASTVersion(21):
@@ -207,10 +202,6 @@ class VectorCASTExecute(object):
             
             from create_index_html import create_index_html
             create_index_html(self.FullMP)
-=======
-    def generateIndexHtml(self):        
-        create_index_html(self.FullMP)
->>>>>>> 8640256 (update from gitlab)
     
     def runJunitMetrics(self):
         print("Creating JUnit Metrics")
@@ -279,15 +270,10 @@ class VectorCASTExecute(object):
             generate_sonarqube_testresults.run(self.FullMP, self.xml_data_dir)
         
     def runPcLintPlusMetrics(self):
-<<<<<<< HEAD
-=======
-        
->>>>>>> 8640256 (update from gitlab)
         print("Creating PC-lint Plus Metrics")
         import generate_pclp_reports 
         os.makedirs(os.path.join(self.xml_data_dir,"pclp"))
         report_name = os.path.join(self.xml_data_dir,"pclp","gl-code-quality-report.json")
-<<<<<<< HEAD
         print("PC-lint Plus Metrics file: " + report_name)
         generate_pclp_reports.generate_reports(self.pclp_input, output_gitlab = report_name)
         
@@ -299,18 +285,6 @@ class VectorCASTExecute(object):
                 import generate_pclp_reports 
                 generate_pclp_reports.generate_html_report(self.FullMP, self.pclp_input, self.pclp_output_html)
             
-=======
-        print("PC-lint Plus Metrics file: ", report_name)
-        generate_pclp_reports.generate_reports(self.pclp_input, output_gitlab = report_name)
-        
-        
-        if args.pclp_output_html:
-            print("Creating PC-lint Plus Findings")
-            import generate_pclp_reports 
-            generate_pclp_reports.generate_html_report(self.FullMP, self.pclp_input, self.pclp_output_html)
-            
-    
->>>>>>> 8640256 (update from gitlab)
     def runReports(self):
         if self.aggregate:
             self.manageWait.exec_manage_command ("--create-report=aggregate --output=" + self.mpName + "_aggregate_report.html")

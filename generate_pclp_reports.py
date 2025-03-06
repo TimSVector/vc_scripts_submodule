@@ -16,11 +16,9 @@ except ImportError:
 import json
 import xml.etree.ElementTree
 import os
-import pathlib
 
 from pprint import pprint
 
-<<<<<<< HEAD
 from vcast_utils import checkVectorCASTVersion
 
 try:
@@ -28,12 +26,6 @@ try:
 except:
     pass
         
-=======
-from vector.apps.DataAPI.vcproject_api import VCProjectApi
-from vector.apps.ReportBuilder.custom_report import CustomReport
-from vcast_utils import checkVectorCASTVersion
-
->>>>>>> 8640256 (update from gitlab)
 g_msgs = []
 g_fullMpName = ""
 
@@ -53,7 +45,6 @@ def parse_msgs(filename):
     # save the base directory of the input file
     directoryName = os.path.dirname(filename)
     
-<<<<<<< HEAD
     try:
         basepath = os.environ['WORKSPACE'].replace("\\","/") + "/"
     except:
@@ -71,10 +62,6 @@ def parse_msgs(filename):
     root = xml.etree.ElementTree.fromstring(pcplXmlData)
     # pprint(dump(tree))
     # root = tree.getroot()
-=======
-    tree = xml.etree.ElementTree.parse(filename)
-    root = tree.getroot()
->>>>>>> 8640256 (update from gitlab)
     msgs = []
     last_primary_msg = None
     for child in root:
@@ -178,7 +165,6 @@ def generate_details():
     global g_msgs
     msgs = g_msgs
     
-<<<<<<< HEAD
     out = ""
     out += build_html_table(
         ['File', 'Line', 'Category', '#', 'Description'],
@@ -382,196 +368,6 @@ def has_any_coverage(line):
     
 def emit_html(msgs):
     out = ""
-=======
-    out = ""
-    out += build_html_table(
-        ['File', 'Line', 'Category', '#', 'Description'],
-        msgs,
-        lambda msg: [
-            "<span class=\"filename\">" + html.escape(msg.file) + "</span>",
-            msg.line if msg.line != "0" else "",
-            msg.category,
-            msg.number,
-            html.escape(msg.text)
-        ]
-    )
-
-    return out
-
-    
-def generate_summaries():
-    
-    global g_msgs
-    msgs = g_msgs
-    out = ""
-
-    file_summaries = summarize_files(msgs)
-    summary_total = FileSummary('Total')
-    for file in file_summaries.values():
-        summary_total.msg_count += file.msg_count
-        summary_total.error_count += file.error_count
-        summary_total.warning_count += file.warning_count
-        summary_total.info_count += file.info_count
-        summary_total.note_count += file.note_count
-        summary_total.misra_count += file.misra_count
-    file_summaries['Total'] = summary_total
-    out += build_html_table(
-        ['File', 'Messages','Error','Warning','Info','Note','MISRA'],
-        file_summaries.values(),
-        lambda file: [ 
-            ("<span class=\"filename\">" + html.escape(file.filename) + "</span>") if file.filename != 'Total' else file.filename,
-            format_benign_zero(file.msg_count),
-            format_benign_zero(file.error_count),
-            format_benign_zero(file.warning_count),
-            format_benign_zero(file.info_count),
-            format_benign_zero(file.note_count),
-            format_benign_zero(file.misra_count)
-        ]
-    )
-    
-    return out
-
-def generate_source():
-    
-    global g_msgs
-    msgs = g_msgs
-    
-    global g_fullMpName
-    fullMpName = g_fullMpName
-    
-    output = ""
-    
-    file_summaries = summarize_files(msgs)
-    if not checkVectorCASTVersion(21, True):
-        print("XXX Cannot generate Source Code section of the PC-Line Report report")
-        print("XXX The Summary and File Detail sections are present")
-        print("XXX If you'd like to see the Source Code section of the PC-Line Report, please upgrade VectorCAST")
-        
-    filenames = []
-    filenames = list(map(lambda file: file.filename, file_summaries.values()))
-
-    filename_dict = {file.filename.lower(): file.filename for file in file_summaries.values()}
-    
-    # Use a lambda inside map to create a dictionary keyed by file and then by line
-    messages_by_file_and_line = {}
-
-    # Group by file
-    list(map(lambda msg: messages_by_file_and_line.setdefault(msg.file, {})
-             .setdefault(msg.line, msg), msgs))    
-    
-    if fullMpName is None:
-        return ""
-        
-    api = VCProjectApi(fullMpName)
-
-    localUnits = api.project.cover_api.SourceFile.all()
-    localUnits.sort(key=lambda x: (x.name))
-
-    try:
-        basepath = os.environ['WORKSPACE'].replace("\\","/") + "/"
-    except:
-        basepath = os.getcwd().replace("\\","/") + "/"
-    
-    for f in localUnits:
-        try:
-            adjustedFname = os.path.relpath(f.display_path,basepath).replace("\\","/").lower()
-        except:
-            adjustedFname = f.display_path.lower()
-                
-        if adjustedFname not in filename_dict.keys():
-            continue
-        
-        fname = filename_dict[adjustedFname]
-        orig_fname = fname;
-        
-        smap = dict()
-        
-        for line in f.iterate_coverage():
-            smap[line.line_number] = line
-                           
-        basename = os.path.basename(fname)
-        
-        filename_anchor = orig_fname.replace("/","_").replace(".","_")
-        
-        output += "<h3 id=" + filename_anchor + ">Coverage for " + escape(fname) + "</h3>\n"
-        output += "<pre class=\"aggregate-coverage\">\n"
-            
-        if not os.path.isfile(fname) and not os.path.isfile(fname + ".vcast.bak"):
-            sys.stderr.write(fname + " not found in the current source tree...skipping\n")
-            return 
-                
-        if os.path.isfile(fname + ".vcast.bak"):
-            fname = fname + ".vcast.bak"
-            
-        with open(fname , 'r') as fh:
-            # read and replace the line ending for consistency
-            contents = fh.read()
-            contents = contents.replace("\r\n", "\n").replace("\r","\n")
-            for lineno, line in enumerate(contents.splitlines(), start=1):
-            
-                # get all the statements
-                srcLine = smap[lineno]
-
-                lineno_str = str(lineno)
-                lineno_str_justified = str(lineno).ljust(6)
-                esc_line = escape(line)
-                
-                if lineno_str in messages_by_file_and_line[orig_fname].keys():
-                    msg = messages_by_file_and_line[orig_fname][lineno_str]
-                    esc_msg_text = escape(msg.text)
-                    tooltip = msg.category + " " + str(msg.number) + " " + esc_msg_text              
-                    anchor =  filename_anchor + "_" + lineno_str
-                    output += "<div id=\"" + anchor + "> class=\"tooltip\">"
-                    output += "<span class=\"na-cvg\">"
-                    output += lineno_str_justified + " <span class=\"tooltiptext\"> " + tooltip + "</span>" + esc_line
-                    output += "</span>"
-                    output += "</div>"
-                else:
-                    output += "<span class=\"na-cvg\">" + lineno_str_justified + " " +  esc_line + "</span>"
-
-            output += "</pre>"
-
-    return output
-
-def generate_html_report(mpName: str, input_xml: str, output_html: str) -> None:
-    
-    print(mpName, input_xml, output_html)
-    
-    global g_fullMpName
-    global g_msgs
-    g_fullMpName = mpName
-    g_msgs = parse_msgs(input_xml)
-    
-    if output_html is None:
-        output_html = "pclp_findings.html"
-        
-    with VCProjectApi(mpName) as api:
-        # Set custom report directory to the where this script was
-        # found. Must contain sections/index_section.py
-        rep_path = pathlib.Path(__file__).parent.resolve()
-        CustomReport.report_from_api(
-                api=api,
-                title="HTML Reports",
-                report_type="INDEX_FILE",
-                formats=["HTML"],
-                output_file=output_html,
-                sections=['CUSTOM_HEADER', 'REPORT_TITLE', 'TABLE_OF_CONTENTS','PCLP_SOURCE_SECTION', 'CUSTOM_FOOTER'],
-                customization_dir=rep_path)
-## , 'PCLP_SOURCE_SECTION',
-
-
-def has_any_coverage(line):
-    
-    return (line.metrics.statements + 
-        line.metrics.branches + 
-        line.metrics.mcdc_branches + 
-        line.metrics.mcdc_pairs + 
-        line.metrics.functions +
-        line.metrics.function_calls)
-    
-def emit_html(msgs):
-    out = ""
->>>>>>> 8640256 (update from gitlab)
     out += "<!DOCTYPE html><html>"
     out += "<head>"
     out += "<meta charset=\"utf-8\"><title>Report</title>"
