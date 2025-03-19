@@ -41,11 +41,17 @@ def getReportName(filename):
         manageProject = filename.split("_metrics",1)[0]
         reportName = "Metrics Report"
     
-    elif  "html_reports" in filename or "management" in filename:
+    elif "html_reports" in filename:
         ## html_reports/VectorCAST_MinGW_C++_UnitTesting_ENV_LINKED_LIST.html
-        comp_ts_env = filename.replace("html_reports/","").replace("management/","").replace(".html","")
+        comp_ts_env = filename.replace("html_reports/","").replace(".html","")
         reportName = comp_ts_env 
         reportType = 1
+
+    elif "management" in filename:
+        comp_ts_env = filename.replace("management/","").replace(".html","")
+        reportName = comp_ts_env 
+        reportType = 3
+
     else:
         reportType = 2
         
@@ -92,6 +98,7 @@ def create_index_html_body ():
     entries = []
     topLevelEntries = []
     indEnvFullEntries = []
+    indEnvTcmrEntries = []
     miscEntries = []
 
     for html_file_name in htmlReportList:
@@ -102,10 +109,12 @@ def create_index_html_body ():
             indEnvFullEntries.append((reportName,html_file_name))
         elif reportType == 2:
             miscEntries.append((reportName,html_file_name))
+        elif reportType == 3:
+            indEnvTcmrEntries.append((reportName,html_file_name))
         else:
             topLevelEntries.append((reportName,html_file_name))
         
-    return topLevelEntries, indEnvFullEntries, miscEntries
+    return topLevelEntries, indEnvFullEntries, indEnvTcmrEntries, miscEntries
     
     
 def run(html_file_list):
