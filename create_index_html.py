@@ -117,49 +117,28 @@ def create_index_html_body ():
     return topLevelEntries, indEnvFullEntries, indEnvTcmrEntries, miscEntries
     
     
-def run(html_file_list):
+def run(mpName):
 
     print("Creating index.html for VectorCAST Project Reports")
 
-    if len(html_file_list) > 0:
-        create_index_html (html_file_list)
-        
-    else:
-        print("No HTML reports found")
-        return 1
-        
-    try:
-        with open("index.html", 'w') as fd:
-            fd.write(indexHtmlText)
-    except:
-        print("Unable to write to index.html")
-        return 1
-    
+    create_index_html (mpName)
+
     return 0
 
 
 def main():
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--html_base_dir", help='Set the base directory of the html_reports directory. The default is the workspace directory', default = "html_reports")
+    parser = argparse.ArgumentParser()    
+    parser.add_argument('ManageProject',       help='Manager Project Name')
     args = parser.parse_args()   
     
+    
+    mpName = args.ManageProject
     try:
         prj_dir = os.environ['CI_PROJECT_DIR'].replace("\\","/") + "/"
     except:
         prj_dir = os.getcwd().replace("\\","/") + "/"
-    
-    tempHtmlReportList = glob.glob("*.html")
-    tempHtmlReportList += glob.glob(os.path.join(args.html_base_dir, "*.html"))
-    htmlReportList = []
-
-    for report in tempHtmlReportList:
-        if "index.html" not in report:
-            report = report.replace("\\","/")
-            report = report.replace(prj_dir,"")
-            htmlReportList.append(report)
-            
-    return run(htmlReportList)
+                
+    return run(mpName)
 
 if __name__ == "__main__" :
-    ret = main()
-    sys.exit (ret)
+    sys.exit (main())

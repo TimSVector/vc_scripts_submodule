@@ -27,6 +27,20 @@ import os
 import sys
 import shutil
 
+# adding path
+workspace = os.getenv("WORKSPACE")
+if workspace is None:
+    workspace = os.getcwd()
+
+jenkinsScriptHome = os.path.join(workspace,"vc_scripts")
+python_path_updates = jenkinsScriptHome
+sys.path.append(python_path_updates)
+
+# needed because vc18 vpython does not have bs4 package
+if sys.version_info[0] < 3:
+    python_path_updates += os.sep + 'vpython-addons'
+    sys.path.append(python_path_updates)
+
 from bs4 import BeautifulSoup
 
 try:    
@@ -134,7 +148,10 @@ def parse_html_files(mpName):
     while keepLooping:
         try:
             with open(report_file_list[0],"r", encoding='utf-8') as fd:
-                main_soup = BeautifulSoup(fd,features="lxml")
+                try:
+                    main_soup = BeautifulSoup((fd),features="lxml")
+                except:
+                    main_soup = BeautifulSoup(fd)
 
             preserved_count = 0
             executed_count = 0
@@ -169,7 +186,10 @@ def parse_html_files(mpName):
     insert_idx = 2
     for file in report_file_list[1:]:
         with open(file,"r", encoding='utf-8') as fd:
-            soup = BeautifulSoup((fd),features="lxml")
+            try:
+                soup = BeautifulSoup((fd),features="lxml")
+            except:
+                soup = BeautifulSoup(fd)
                 
         try:
             if soup.find(id="report-title"):
