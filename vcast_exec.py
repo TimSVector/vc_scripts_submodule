@@ -298,6 +298,7 @@ class VectorCASTExecute(object):
             self.needIndexHtml = True
             
     def generateTestCaseMgtRpt(self):
+        print("generating tcmrs")
         if not os.path.exists("management"):
             os.makedirs(directory)
         else:
