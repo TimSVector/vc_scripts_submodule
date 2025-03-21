@@ -101,6 +101,8 @@ The api for vcast_exec.py follows:
 3/2025
 * Added support for generating test case management reports and storing them to management directory
 * Updated the index.html to include those reports
+* Added incremental_build_report_aggregator.py from the Jenkins plugin.  
+
 11/2024
 * Added option for source root to add an absolute path to the beginning of the relatives coverage paths
 * Fixed a lcov coverage error when VC Project coverage is not in Source File Perspective mode
