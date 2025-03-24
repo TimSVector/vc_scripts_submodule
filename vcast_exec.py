@@ -300,7 +300,7 @@ class VectorCASTExecute(object):
     def generateTestCaseMgtRpt(self):
         print("generating tcmrs")
         if not os.path.exists("management"):
-            os.makedirs(directory)
+            os.makedirs("management")
         else:
             for file in glob.glob("management/*_management_report.html"):
                 os.remove(file)
