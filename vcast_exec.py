@@ -50,9 +50,47 @@ except:
 from vcast_utils import checkVectorCASTVersion, dump
 import generate_sonarqube_testresults 
 
+from enum import Enum
+
+class CITool(Enum):
+    JENKINS = "Jenkins"
+    GITLAB = "GitLab CI"
+    AZURE = "Azure Pipelines"
+    GITHUB = "GitHub Actions"
+    CIRCLECI = "CircleCI"
+    TRAVIS = "Travis CI"
+    BITBUCKET = "Bitbucket Pipelines"
+    TEAMCITY = "TeamCity"
+    BAMBOO = "Bamboo"
+    UNKNOWN = "Unknown CI/CD"
+
 class VectorCASTExecute(object):
+    
+    def detect_ci_tool(self):
+        if "JENKINS_URL" in os.environ:
+            self.ciTool = CITool.JENKINS
+        elif "GITLAB_CI" in os.environ:
+            self.ciTool = CITool.GITLAB
+        elif "AZURE_PIPELINES" in os.environ or "BUILD_SOURCEVERSION" in os.environ:
+            self.ciTool =  CITool.AZURE
+        elif "GITHUB_ACTIONS" in os.environ:
+            self.ciTool =  CITool.GITHUB
+        elif "CIRCLECI" in os.environ:
+            self.ciTool =  CITool.CIRCLECI
+        elif "TRAVIS" in os.environ:
+            self.ciTool =  CITool.TRAVIS
+        elif "BITBUCKET_BUILD_NUMBER" in os.environ:
+            self.ciTool =  CITool.BITBUCKET
+        elif "TEAMCITY_VERSION" in os.environ:
+            self.ciTool =  CITool.TEAMCITY
+        elif "BAMBOO_BUILDNUMBER" in os.environ:
+            self.ciTool =  CITool.BAMBOO
+        else:
+            self.ciTool =  CITool.UNKNOWN
 
     def __init__(self, args):
+
+        self.detect_ci_tool()
 
         # setup default values
         self.azure = args.azure
@@ -202,7 +240,7 @@ class VectorCASTExecute(object):
                     htmlReportList.append(report)
             
             from create_index_html import create_index_html
-            create_index_html(self.FullMP)
+            create_index_html(self.FullMP, self.ciTool == CITool.GITLAB)
     
     def runJunitMetrics(self):
         print("Creating JUnit Metrics")
@@ -298,7 +336,6 @@ class VectorCASTExecute(object):
             self.needIndexHtml = True
             
     def generateTestCaseMgtRpt(self):
-        print("generating tcmrs")
         if not os.path.exists("management"):
             os.makedirs("management")
         else:
