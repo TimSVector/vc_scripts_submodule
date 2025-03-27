@@ -145,12 +145,8 @@ def parse_html_files(mpName):
         return
     keepLooping = True
     
-    print(report_file_list)
-    
     while keepLooping:
-        
         try:
-            print(report_file_list[0])
             with open(report_file_list[0],"r", encoding='utf-8') as fd:
                 try:
                     main_soup = BeautifulSoup((fd),features="lxml")
@@ -171,12 +167,8 @@ def parse_html_files(mpName):
                 main_manage_api_report = False
                 main_row_list = main_soup.table.table.tr.find_next_siblings()
                 main_count_list = main_row_list[-1].td.find_next_siblings()
-                print("skipping...",report_file_list[0])
-
             keepLooping = False
         except:
-            print("skipping...",report_file_list[0])
-
             if len(report_file_list) > 0:
                 report_file_list.pop(0)
                 keepLooping = True
@@ -193,7 +185,6 @@ def parse_html_files(mpName):
     
     insert_idx = 2
     for file in report_file_list[1:]:
-        print(file)
         with open(file,"r", encoding='utf-8') as fd:
             try:
                 soup = BeautifulSoup((fd),features="lxml")
