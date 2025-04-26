@@ -22,13 +22,10 @@
 # THE SOFTWARE.
 #
 
-import os, subprocess,argparse, glob, sys, shutil
-from vector.apps.DataAPI.vcproject_api import VCProjectApi 
+import os, subprocess,argparse, glob, sys, shutil 
 
 from managewait import ManageWait
 
-import cobertura
-import generate_lcov
 import patch_rgw_directory as rgw
 
 try:
@@ -41,14 +38,17 @@ except:
         vc_script = os.path.join(os.environ['WORKSPACE'], "vc_scripts", "generate-results.py")
         import imp
         generate_results = imp.load_source("generate_results", vc_script)
-    
+
+if sys.version_info[0] < 3:
+    python_path_updates = os.path.join(os.environ['VECTORCAST_DIR'], "DATA", "python")
+    sys.path.append(python_path_updates)
+
 try:
-    import vector.apps.parallel.parallel_build_execute as parallel_build_execute
+    import parallel_build_execute
 except:
     import prevcast_parallel_build_execute as parallel_build_execute
 
 from vcast_utils import checkVectorCASTVersion, dump
-import generate_sonarqube_testresults 
 
 from enum import Enum
 
@@ -287,12 +287,15 @@ class VectorCASTExecute(object):
             print("XXX Cannot create LCOV metrics. Please upgrade VectorCAST\n")
         else:
             print("Creating LCOV Metrics")
+            import generate_lcov
             generate_lcov.generateCoverageResults(self.FullMP, self.xml_data_dir, verbose = self.verbose, source_root = self.source_root)
 
     def runCoberturaMetrics(self):
         if not checkVectorCASTVersion(21):
             print("Cannot create Cobertura metrics. Please upgrade VectorCAST")
         else:
+            import cobertura
+
             if self.cobertura_extended:
                 print("Creating Extended Cobertura Metrics")
             else:
@@ -306,22 +309,22 @@ class VectorCASTExecute(object):
             print("Cannot create SonarQube metrics. Please upgrade VectorCAST")
         else:
             print("Creating SonarQube Metrics")
+            import generate_sonarqube_testresults 
             generate_sonarqube_testresults.run(self.FullMP, self.xml_data_dir)
         
     def runPcLintPlusMetrics(self):
         print("Creating PC-lint Plus Metrics")
-        import generate_pclp_reports 
-        os.makedirs(os.path.join(self.xml_data_dir,"pclp"))
-        report_name = os.path.join(self.xml_data_dir,"pclp","gl-code-quality-report.json")
-        print("PC-lint Plus Metrics file: " + report_name)
-        generate_pclp_reports.generate_reports(self.pclp_input, output_gitlab = report_name)
-        
-        if args.pclp_output_html:
-            if not checkVectorCASTVersion(21):
-                print("Cannot create PC-Lint Plus HTML report. Please upgrade VectorCAST")
-            else:
+        if not checkVectorCASTVersion(21):
+            print("Cannot create PC-Lint Plus HTML report. Please upgrade VectorCAST")
+        else:
+            import generate_pclp_reports 
+            os.makedirs(os.path.join(self.xml_data_dir,"pclp"))
+            report_name = os.path.join(self.xml_data_dir,"pclp","gl-code-quality-report.json")
+            print("PC-lint Plus Metrics file: " + report_name)
+            generate_pclp_reports.generate_reports(self.pclp_input, output_gitlab = report_name)
+            
+            if args.pclp_output_html:
                 print("Creating PC-lint Plus Findings")
-                import generate_pclp_reports 
                 generate_pclp_reports.generate_html_report(self.FullMP, self.pclp_input, self.pclp_output_html)
             
     def runReports(self):
@@ -341,17 +344,23 @@ class VectorCASTExecute(object):
         else:
             for file in glob.glob("management/*_management_report.html"):
                 os.remove(file)
-            
-        with VCProjectApi(self.FullMP) as vcprojApi:
-            for env in vcprojApi.Environment.all():
-                if not env.is_active:
-                    continue
-                        
-                self.needIndexHtml = True
                 
-                report_name = env.compiler.name + "_" + env.testsuite.name + "_" + env.name + "_management_report.html"
-                report_name = os.path.join("management",report_name)
-                env.api.report(report_type="MANAGEMENT_REPORT", formats=["HTML"], output_file=report_name)
+        if checkVectorCASTVersion(21):
+            from vector.apps.DataAPI.vcproject_api import VCProjectApi
+                                   
+            with VCProjectApi(self.FullMP) as vcprojApi:
+                for env in vcprojApi.Environment.all():
+                    if not env.is_active:
+                        continue
+                            
+                    self.needIndexHtml = True
+                    
+                    report_name = env.compiler.name + "_" + env.testsuite.name + "_" + env.name + "_management_report.html"
+                    report_name = os.path.join("management",report_name)
+                    env.api.report(report_type="MANAGEMENT_REPORT", formats=["HTML"], output_file=report_name)
+        else:
+            print("Cannot create Test Case Management HTML report. Please upgrade VectorCAST")
+
         
     def exportRgw(self):
         rgw.updateReqRepo(VC_Manage_Project=self.FullMP, VC_Workspace=os.getcwd() , top_level=False)
