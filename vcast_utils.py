@@ -38,6 +38,7 @@ def __get_script_filename():
 
 
 def checkVectorCASTVersion(minimumVersion, quiet = False):
+    
     tool_version = os.path.join(os.environ['VECTORCAST_DIR'], "DATA", "tool_version.txt")
     with open(tool_version,"r") as fd:
         ver = fd.read()
@@ -75,6 +76,19 @@ def fmt_percent(num, dom):
     else:
         str_num = "0%"
     return str_num
+    
+def printVectorLogo():
+    print( "                                                                                  ####                             ")
+    print( "                                                                                  ########                         ")
+    print( "                                                                                  ###########                      ")
+    print( "          @@@    @@@   @@@@@@@@    @@@@@@@ @@@@@@@@@@  @@@@@@@@    @@@@@@@@          ###########                   ")
+    print( "           @@@@ @@@    @@@        @@@         @@@     @@@@  @@@@   @@@   @@@            ###########                ")
+    print( "            @@@@@@     @@@@@@    @@@          @@@    @@@     @@@   @@@@@@@@@               ##########              ")
+    print( "             @@@@      @@@        @@@         @@@     @@@@  @@@@   @@@@@@@@             ###########                ")
+    print( "              @@       @@@@@@@@    @@@@@@@    @@@      @@@@@@@@    @@@  @@@@         ###########                   ")
+    print( "                                                                                  ###########                      ")
+    print( "                                                                                  ########                         ")
+    print( "                                                                                  ####                             ")
 
 if __name__ == '__main__':
 
