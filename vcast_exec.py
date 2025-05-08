@@ -493,10 +493,6 @@ if __name__ == '__main__':
     if args.aggregate or args.metrics or args.fullstatus:
         vcExec.runReports()
 
-    if vcExec.useJunitFailCountPct:
-        print("--exit_with_failed_count=" + args.exit_with_failed_count + " specified.  Fail Percent = " + str(round(vcExec.failed_pct,0)) + "% Return code: ", str(vcExec.failed_count))
-        sys.exit(vcExec.failed_count)
-        
     if args.tcmr:
         vcExec.generateTestCaseMgtRpt()
 
@@ -505,4 +501,9 @@ if __name__ == '__main__':
         
     if args.export_rgw:
         vcExec.exportRgw()
+
+    if vcExec.useJunitFailCountPct:
+        print("--exit_with_failed_count=" + args.exit_with_failed_count + " specified.  Fail Percent = " + str(round(vcExec.failed_pct,0)) + "% Return code: ", str(vcExec.failed_count))
+        sys.exit(vcExec.failed_count)
+        
         
