@@ -313,10 +313,10 @@ class VectorCASTExecute(object):
             generate_sonarqube_testresults.run(self.FullMP, self.xml_data_dir)
         
     def runPcLintPlusMetrics(self):
-        print("Creating PC-lint Plus Metrics")
         if not checkVectorCASTVersion(21):
             print("Cannot create PC-Lint Plus HTML report. Please upgrade VectorCAST")
         else:
+            print("Creating PC-lint Plus Metrics")
             import generate_pclp_reports 
             os.makedirs(os.path.join(self.xml_data_dir,"pclp"))
             report_name = os.path.join(self.xml_data_dir,"pclp","gl-code-quality-report.json")
@@ -329,12 +329,15 @@ class VectorCASTExecute(object):
             
     def runReports(self):
         if self.aggregate:
+            print("Creating Aggregate Coverage Report")
             self.manageWait.exec_manage_command ("--create-report=aggregate --output=" + self.mpName + "_aggregate_report.html")
             self.needIndexHtml = True
         if self.metrics:
+            print("Creating Metrics Report")
             self.manageWait.exec_manage_command ("--create-report=metrics --output=" + self.mpName + "_metrics_report.html")
             self.needIndexHtml = True
         if self.fullstatus:
+            print("Creating Full Status Report")
             self.manageWait.exec_manage_command ("--full-status=" + self.mpName + "_full_status_report.html")
             self.needIndexHtml = True
             
@@ -346,6 +349,7 @@ class VectorCASTExecute(object):
                 os.remove(file)
                 
         if checkVectorCASTVersion(21):
+            print("Creating Test Case Management HTML report")
             from vector.apps.DataAPI.vcproject_api import VCProjectApi
                                    
             with VCProjectApi(self.FullMP) as vcprojApi:
@@ -363,6 +367,7 @@ class VectorCASTExecute(object):
 
         
     def exportRgw(self):
+        print("Creating RGW Exports")
         rgw.updateReqRepo(VC_Manage_Project=self.FullMP, VC_Workspace=os.getcwd() , top_level=False)
         self.manageWait.exec_manage_command ("--clicast-args rgw export")
 
