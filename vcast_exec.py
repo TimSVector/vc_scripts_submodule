@@ -383,8 +383,14 @@ class VectorCASTExecute(object):
         else:
             output = ""
             
-        if self.jobs != "1" and checkVectorCASTVersion(20, True):
+         
+        if checkVectorCASTVersion(25, False):
+            useParallelManageCommand = True
+        else:
+            useParallelManageCommand = False
             
+        
+        if self.jobs != "1" and checkVectorCASTVersion(20, True) and not useParallelManageCommand:
             # setup project for parallel execution
             self.manageWait.exec_manage_command ("--config VCAST_DEPENDENCY_CACHE_DIR=./vcqik")
 
@@ -408,7 +414,12 @@ class VectorCASTExecute(object):
             parallel_build_execute.parallel_build_execute(callStr)
 
         else:      
-            cmd = "--" + self.build_execute + " " + self.useCBT + self.level_option + self.env_option + output 
+            if useParallelManageCommand:
+                jstr = "--jobs="+str(self.jobs)
+            else:
+                jstr = ""
+                
+            cmd = "--" + self.build_execute + " " + self.useCBT + self.level_option + self.env_option + " " + jstr + " " + output 
             build_log = self.manageWait.exec_manage_command (cmd)
             open(self.build_log_name,"w").write(build_log)
 
