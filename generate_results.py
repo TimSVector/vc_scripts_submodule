@@ -315,6 +315,9 @@ def useNewAPI(FullManageProjectName, manageEnvs, level, envName, use_ci, xml_dat
         elif manageEnvs[currentEnv]["env"].upper() == envName.upper(): 
             env_level = manageEnvs[currentEnv]["compiler"] + "/" + manageEnvs[currentEnv]["testsuite"]
             
+            if level is None:
+                level =  env_level
+            
             if env_level.upper() == level.upper():
                 fc, pc = genDataApiReports(FullManageProjectName, manageEnvs[currentEnv], use_ci, xml_data_dir)
                 failed_count += fc
