@@ -98,6 +98,11 @@ The api for vcast_exec.py follows:
 ```
 
 # Change log
+5/2025
+* Updated the index.html to include the proper CSS for PC Lint Plus
+* Added support for manage.exe parallel build/executes
+* Fixed issues with corner cases in scripts
+
 3/2025
 * Added support for generating test case management reports and storing them to management directory
 * Updated the index.html to include those reports
