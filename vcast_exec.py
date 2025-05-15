@@ -486,6 +486,8 @@ if __name__ == '__main__':
         print ("exiting...")
         sys.exit(-1)
 
+    for key in os.environ.keys():
+        print(f"{key}={os.environ[key]}")
         
     vcExec = VectorCASTExecute(args)
     
