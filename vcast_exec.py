@@ -486,7 +486,6 @@ if __name__ == '__main__':
         print ("exiting...")
         sys.exit(-1)
 
-        
     vcExec = VectorCASTExecute(args)
     
     if args.build_execute or args.build:
