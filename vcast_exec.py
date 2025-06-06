@@ -383,13 +383,11 @@ class VectorCASTExecute(object):
         else:
             output = ""
             
-         
         if checkVectorCASTVersion(25, False):
             useParallelManageCommand = True
         else:
             useParallelManageCommand = False
             
-        
         if self.jobs != "1" and checkVectorCASTVersion(20, True) and not useParallelManageCommand:
             # setup project for parallel execution
             self.manageWait.exec_manage_command ("--config VCAST_DEPENDENCY_CACHE_DIR=./vcqik")
@@ -418,7 +416,6 @@ class VectorCASTExecute(object):
                 jstr = "--jobs="+str(self.jobs)
             else:
                 jstr = ""
-                
             cmd = "--" + self.build_execute + " " + self.useCBT + self.level_option + self.env_option + " " + jstr + " " + output 
             build_log = self.manageWait.exec_manage_command (cmd)
             open(self.build_log_name,"w").write(build_log)
@@ -517,9 +514,7 @@ if __name__ == '__main__':
         
     if args.export_rgw:
         vcExec.exportRgw()
-
     if vcExec.useJunitFailCountPct:
         print("--exit_with_failed_count=" + args.exit_with_failed_count + " specified.  Fail Percent = " + str(round(vcExec.failed_pct,0)) + "% Return code: ", str(vcExec.failed_count))
         sys.exit(vcExec.failed_count)
-        
         
