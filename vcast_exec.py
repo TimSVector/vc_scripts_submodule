@@ -124,10 +124,12 @@ class VectorCASTExecute(object):
         self.failed_count = 0
         
         if args.output_dir:
+            self.output_dir = args.output_dir
             self.xml_data_dir = os.path.join(args.output_dir, 'xml_data')
             if not os.path.exists(self.xml_data_dir):
                 os.makedirs(self.xml_data_dir)
         else:
+            self.output_dir = ""
             self.xml_data_dir = "xml_data"
         
         if args.build and not args.build_execute:
@@ -230,7 +232,8 @@ class VectorCASTExecute(object):
                 prj_dir = os.getcwd().replace("\\","/") + "/"
 
             tempHtmlReportList = glob.glob("*.html")
-            tempHtmlReportList += glob.glob(os.path.join(args.html_base_dir, "*.html"))
+            tempHtmlReportList += glob.glob(os.path.join(self.xml_data_dir, "*.html"))
+            tempHtmlReportList += glob.glob(os.path.join(self.html_base_dir, "*.html"))
             htmlReportList = []
 
             for report in tempHtmlReportList:
@@ -240,7 +243,7 @@ class VectorCASTExecute(object):
                     htmlReportList.append(report)
             
             from create_index_html import create_index_html
-            create_index_html(self.FullMP, self.ciTool == CITool.GITLAB)
+            create_index_html(self.FullMP, self.ciTool == CITool.GITLAB, output_dir=self.output_dir)
     
     def runJunitMetrics(self):
         print("Creating JUnit Metrics")
@@ -329,23 +332,32 @@ class VectorCASTExecute(object):
             
     def runReports(self):
         if self.aggregate:
+            agg_rpt_name = os.path.join(self.output_dir, self.mpName + "_aggregate_report.html")
             print("Creating Aggregate Coverage Report")
-            self.manageWait.exec_manage_command ("--create-report=aggregate --output=" + self.mpName + "_aggregate_report.html")
+            if os.path.exists(agg_rpt_name): 
+                os.remove(agg_rpt_name)
+            self.manageWait.exec_manage_command ("--create-report=aggregate --output=" + agg_rpt_name)
             self.needIndexHtml = True
         if self.metrics:
+            met_rpt_name = os.path.join(self.output_dir, self.mpName + "_metrics_report.html")
             print("Creating Metrics Report")
-            self.manageWait.exec_manage_command ("--create-report=metrics --output=" + self.mpName + "_metrics_report.html")
+            if os.path.exists(met_rpt_name): 
+                os.remove(met_rpt_name)
+            self.manageWait.exec_manage_command ("--create-report=metrics --output=" + met_rpt_name)
             self.needIndexHtml = True
         if self.fullstatus:
+            fs_rpt_name = os.path.join(self.output_dir, self.mpName + "_full_status_report.html")
+            if os.path.exists(fs_rpt_name): 
+                os.remove(fs_rpt_name)
             print("Creating Full Status Report")
-            self.manageWait.exec_manage_command ("--full-status=" + self.mpName + "_full_status_report.html")
+            self.manageWait.exec_manage_command ("--full-status=" + fs_rpt_name)
             self.needIndexHtml = True
             
     def generateTestCaseMgtRpt(self):
-        if not os.path.exists("management"):
-            os.makedirs("management")
+        if not os.path.exists(os.path.join(self.output_dir, "management")):
+            os.makedirs(os.path.join(self.output_dir, "management"))
         else:
-            for file in glob.glob("management/*_management_report.html"):
+            for file in glob.glob(os.path.join(self.output_dir, "management","*_management_report.html")):
                 os.remove(file)
                 
         if checkVectorCASTVersion(21):
@@ -360,7 +372,7 @@ class VectorCASTExecute(object):
                     self.needIndexHtml = True
                     
                     report_name = env.compiler.name + "_" + env.testsuite.name + "_" + env.name + "_management_report.html"
-                    report_name = os.path.join("management",report_name)
+                    report_name = os.path.join(self.output_dir, "management",report_name)
                     print(f"Creating Test Case Management HTML report for {env.name} in {report_name}")
                     env.api.report(report_type="MANAGEMENT_REPORT", formats=["HTML"], output_file=report_name)
         else:
