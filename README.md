@@ -27,11 +27,15 @@ The python scrip `vcast_exec.py` is the main driver for build/execute VectorCAST
 The api for vcast_exec.py follows:
 
 ```
-    usage: vcast_exec.py [-h] [--build-execute] [--build | --incremental] [--output_dir OUTPUT_DIR] [--source_root SOURCE_ROOT]
-                         [--html_base_dir HTML_BASE_DIR] [--cobertura] [--cobertura_extended] [--lcov] [--junit] [--export_rgw] [--sonarqube]
-                         [--pclp_input PCLP_INPUT] [--pclp_output_html PCLP_OUTPUT_HTML] [--exit_with_failed_count [EXIT_WITH_FAILED_COUNT]] [--aggregate]
-                         [--metrics] [--fullstatus] [--tcmr] [--jobs JOBS] [--ci] [-l LEVEL] [-e ENVIRONMENT] [--gitlab | --azure] [--print_exc] [--timing]
-                         [--verbose] [--version]
+    usage: vcast_exec.py [-h] [--build-execute] [--build | --incremental] [--output_dir OUTPUT_DIR]
+                         [--source_root SOURCE_ROOT] [--html_base_dir HTML_BASE_DIR]
+                         [--cobertura] [--cobertura_extended] [--lcov] [--junit]
+                         [--export_rgw] [--sonarqube] [--pclp_input PCLP_INPUT]
+                         [--pclp_output_html PCLP_OUTPUT_HTML]
+                         [--exit_with_failed_count [EXIT_WITH_FAILED_COUNT]] [--aggregate]
+                         [--metrics] [--fullstatus] [--tcmr] [--jobs JOBS]
+                         [--ci] [-l LEVEL] [-e ENVIRONMENT] [--gitlab | --azure]
+                         [--print_exc] [--timing] [--verbose] [--version]
                          ManageProject
 
     positional arguments:
@@ -63,11 +67,13 @@ The api for vcast_exec.py follows:
       --export_rgw          Export RGW data
       --sonarqube           Generate test results in SonarQube Generic test execution report format (CppUnit)
       --pclp_input PCLP_INPUT
-                            Generate static analysis results from PC-lint Plus XML file to generic static analysis format (codequality)
+                            Generate static analysis results from PC-lint Plus XML file to generic static
+                            analysis format (codequality)
       --pclp_output_html PCLP_OUTPUT_HTML
                             Generate static analysis results from PC-lint Plus XML file to an HTML output
       --exit_with_failed_count [EXIT_WITH_FAILED_COUNT]
-                            Returns failed test case count as script exit. Set a value to indicate a percentage above which the job will be marked as failed
+                            Returns failed test case count as script exit. Set a value to indicate a percentage
+                            above which the job will be marked as failed
 
     Report Selection:
       VectorCAST Manage reports that can be generated
