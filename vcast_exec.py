@@ -64,6 +64,20 @@ class CITool(Enum):
     BAMBOO = "Bamboo"
     UNKNOWN = "Unknown CI/CD"
 
+def displayVersion():
+    versionInfo = "Version Unknown"
+
+    # Get absolute path to directory containing the current script
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+
+    # Build path to VERSION.txt
+    version_path = os.path.join(script_dir, 'VERSION.txt')    
+    
+    if os.path.exists(version_path):
+        with open(version_path,"r") as fd:
+            versionInfo = fd.read()
+    print("vc_scripts_submodule Version: ", versionInfo)
+
 class VectorCASTExecute(object):
     
     def detect_ci_tool(self):
@@ -436,7 +450,7 @@ class VectorCASTExecute(object):
 if __name__ == '__main__':
 
     parser = argparse.ArgumentParser()
-    parser.add_argument('ManageProject', help='VectorCAST Project Name')
+    parser.add_argument('ManageProject', nargs='?', help='VectorCAST Project Name')
     
     actionGroup = parser.add_argument_group('Script Actions', 'Options for the main tasks')
     actionGroup.add_argument('--build-execute', help='Builds and exeuctes the VectorCAST Project', action="store_true", default = False)
@@ -481,20 +495,29 @@ if __name__ == '__main__':
     actionGroup.add_argument('--print_exc', help='Prints exceptions', action="store_true", default = False)
     actionGroup.add_argument('--timing', help='Prints timing information for metrics generation', action="store_true", default = False)
     actionGroup.add_argument('-v', '--verbose',   help='Enable verbose output', action="store_true", default = False)
-    
+    actionGroup.add_argument('--version', help='Displays the version information', action="store_true", default = False)
 
     args = parser.parse_args()
     
-    if args.ci:
-        os.environ['VCAST_USE_CI_LICENSES'] = "1"
-        
-    os.environ['VCAST_MANAGE_PROJECT_DIRECTORY'] = os.path.abspath(args.ManageProject).rsplit(".",1)[0]
+    # Conditional requirement check
+    if not args.version and not args.ManageProject:
+        parser.error("ManageProject is required unless --version is specified")
+        sys.exit(0)
 
-    if not os.path.isfile(args.ManageProject):
+    if args.ManageProject and not os.path.isfile(args.ManageProject):
         print ("Manage project (.vcm file) provided does not exist: " + args.ManageProject)
         print ("exiting...")
         sys.exit(-1)
 
+    if args.version:
+        displayVersion()
+        sys.exit(0)
+
+    if args.ci:
+        os.environ['VCAST_USE_CI_LICENSES'] = "1"
+        
+    os.environ['VCAST_MANAGE_PROJECT_DIRECTORY'] = os.path.abspath(args.ManageProject).rsplit(".",1)[0]
+        
     vcExec = VectorCASTExecute(args)
     
     if args.build_execute or args.build:
@@ -526,6 +549,7 @@ if __name__ == '__main__':
         
     if args.export_rgw:
         vcExec.exportRgw()
+        
     if vcExec.useJunitFailCountPct:
         print("--exit_with_failed_count=" + args.exit_with_failed_count + " specified.  Fail Percent = " + str(round(vcExec.failed_pct,0)) + "% Return code: ", str(vcExec.failed_count))
         sys.exit(vcExec.failed_count)
