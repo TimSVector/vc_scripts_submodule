@@ -1,0 +1,21 @@
+name: Update VERSION.txt
+
+on: [push]
+
+jobs:
+  version:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Generate version
+        run: |
+          echo "v$(date +'%Y.%m.%d-%H%M')-g$(git rev-parse --short HEAD)" > VERSION.txt
+
+      - name: Commit version file
+        run: |
+          git config user.name "github-actions"
+          git config user.email "actions@github.com"
+          git add VERSION.txt
+          git commit -m "Update VERSION.txt"
+          git push
