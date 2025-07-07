@@ -31,7 +31,7 @@ The api for vcast_exec.py follows:
                          [--html_base_dir HTML_BASE_DIR] [--cobertura] [--cobertura_extended] [--lcov] [--junit] [--export_rgw] [--sonarqube]
                          [--pclp_input PCLP_INPUT] [--pclp_output_html PCLP_OUTPUT_HTML] [--exit_with_failed_count [EXIT_WITH_FAILED_COUNT]] [--aggregate]
                          [--metrics] [--fullstatus] [--tcmr] [--jobs JOBS] [--ci] [-l LEVEL] [-e ENVIRONMENT] [--gitlab | --azure] [--print_exc] [--timing]
-                         [-v]
+                         [--verbose] [--version]
                          ManageProject
 
     positional arguments:
@@ -95,9 +95,13 @@ The api for vcast_exec.py follows:
       --print_exc           Prints exceptions
       --timing              Prints timing information for metrics generation
       -v, --verbose         Enable verbose output
+      --version             Diplays the version of the script. 
 ```
 
 # Change log
+7/2025
+* Updated to produce a version of the script (--version) based on push date and commit ID
+
 5/2025
 * Updated the index.html to include the proper CSS for PC Lint Plus
 * Added support for manage.exe parallel build/executes
