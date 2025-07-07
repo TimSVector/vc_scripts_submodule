@@ -20,8 +20,12 @@ jobs:
 
       - name: Commit and push version file
         run: |
-          git config user.name "github-actions"
-          git config user.email "actions@github.com"
-          git add VERSION.txt
-          git commit -m "Update VERSION.txt" || echo "No changes to commit"
-          git push
+          if [[ "${{ github.event.head_commit.message }}" == *"Update VERSION.txt"* ]]; then
+            echo "VERSION.txt already updated — skipping push to avoid loop."
+          else
+            git config user.name "github-actions"
+            git config user.email "actions@github.com"
+            git add VERSION.txt
+            git commit -m "Update VERSION.txt" || echo "No changes to commit"
+            git push
+          fi
