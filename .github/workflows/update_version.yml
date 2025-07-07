@@ -15,7 +15,7 @@ jobs:
 
       - name: Generate version
         run: |
-          echo "v$(date +'%Y.%m.%d-%H%M')-g$(git rev-parse --short HEAD)" > VERSION.txt
+          echo "v$(TZ=America/New_York date +'%Y.%m.%d-%H%M%z')-g$(git rev-parse --short HEAD)" > VERSION.txt
 
       - name: Commit and push version file
         run: |
