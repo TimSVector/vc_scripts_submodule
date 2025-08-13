@@ -340,7 +340,7 @@ class VectorCASTExecute(object):
             print("PC-lint Plus Metrics file: " + report_name)
             generate_pclp_reports.generate_reports(self.pclp_input, output_gitlab = report_name)
             
-            if args.pclp_output_html:
+            if self.pclp_output_html:
                 print("Creating PC-lint Plus Findings")
                 generate_pclp_reports.generate_html_report(self.FullMP, self.pclp_input, self.pclp_output_html)
             
@@ -517,7 +517,12 @@ if __name__ == '__main__':
         os.environ['VCAST_USE_CI_LICENSES'] = "1"
         
     os.environ['VCAST_MANAGE_PROJECT_DIRECTORY'] = os.path.abspath(args.ManageProject).rsplit(".",1)[0]
-        
+
+    if not os.path.isfile(args.ManageProject):
+        print ("Manage project (.vcm file) provided does not exist: " + args.ManageProject)
+        print ("exiting...")
+        sys.exit(-1)
+
     vcExec = VectorCASTExecute(args)
     
     if args.build_execute or args.build:
