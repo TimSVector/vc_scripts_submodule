@@ -343,7 +343,8 @@ class VectorCASTExecute(object):
             if self.pclp_output_html:
                 print("Creating PC-lint Plus Findings")
                 generate_pclp_reports.generate_html_report(self.FullMP, self.pclp_input, self.pclp_output_html)
-            
+                self.needIndexHtml = True
+                
     def runReports(self):
         if self.aggregate:
             agg_rpt_name = os.path.join(self.output_dir, self.mpName + "_aggregate_report.html")
