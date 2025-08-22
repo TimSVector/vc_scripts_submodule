@@ -27,16 +27,17 @@ The python scrip `vcast_exec.py` is the main driver for build/execute VectorCAST
 The api for vcast_exec.py follows:
 
 ```
+    vpython vcast_exec.py --help
     usage: vcast_exec.py [-h] [--build-execute] [--build | --incremental] [--output_dir OUTPUT_DIR]
-                         [--source_root SOURCE_ROOT] [--html_base_dir HTML_BASE_DIR]
-                         [--cobertura] [--cobertura_extended] [--lcov] [--junit]
+                         [--source_root SOURCE_ROOT] [--html_base_dir HTML_BASE_DIR] 
+                         [--cobertura] [--cobertura_extended] [--lcov] [--junit] 
                          [--export_rgw] [--sonarqube] [--pclp_input PCLP_INPUT]
-                         [--pclp_output_html PCLP_OUTPUT_HTML]
-                         [--exit_with_failed_count [EXIT_WITH_FAILED_COUNT]] [--aggregate]
-                         [--metrics] [--fullstatus] [--tcmr] [--jobs JOBS]
-                         [--ci] [-l LEVEL] [-e ENVIRONMENT] [--gitlab | --azure]
-                         [--print_exc] [--timing] [--verbose] [--version]
-                         ManageProject
+                         [--pclp_output_html PCLP_OUTPUT_HTML] 
+                         [--exit_with_failed_count [EXIT_WITH_FAILED_COUNT]] 
+                         [--aggregate] [--metrics] [--fullstatus] [--utfull] [--tcmr] [--index] 
+                         [--jobs JOBS] [--ci] [--level LEVEL] [--environment ENVIRONMENT] 
+                         [--gitlab | --azure] [--print_exc] [--timing] [--version]
+                         [ManageProject]
 
     positional arguments:
       ManageProject         VectorCAST Project Name
@@ -67,13 +68,11 @@ The api for vcast_exec.py follows:
       --export_rgw          Export RGW data
       --sonarqube           Generate test results in SonarQube Generic test execution report format (CppUnit)
       --pclp_input PCLP_INPUT
-                            Generate static analysis results from PC-lint Plus XML file to generic static
-                            analysis format (codequality)
+                            Generate static analysis results from PC-lint Plus XML file to generic static analysis format (codequality)
       --pclp_output_html PCLP_OUTPUT_HTML
                             Generate static analysis results from PC-lint Plus XML file to an HTML output
       --exit_with_failed_count [EXIT_WITH_FAILED_COUNT]
-                            Returns failed test case count as script exit. Set a value to indicate a percentage
-                            above which the job will be marked as failed
+                            Returns failed test case count as script exit. Set a value to indicate a percentage above which the job will be marked as failed
 
     Report Selection:
       VectorCAST Manage reports that can be generated
@@ -81,7 +80,9 @@ The api for vcast_exec.py follows:
       --aggregate           Generate aggregate coverage report VectorCAST Project
       --metrics             Generate metrics reports for VectorCAST Project
       --fullstatus          Generate full status reports for VectorCAST Project
+      --utfull              Generate Full Reports for each VectorCAST environment in project
       --tcmr                Generate Test Cases Management Reports for each VectorCAST environment in project
+      --index               Generate an index.html report that ties all the other HTML reports together
 
     Build/Execution Options:
       Options that effect build/execute operation
@@ -101,10 +102,14 @@ The api for vcast_exec.py follows:
       --print_exc           Prints exceptions
       --timing              Prints timing information for metrics generation
       -v, --verbose         Enable verbose output
-      --version             Diplays the version of the script. 
+      --version             Displays the version information
 ```
 
 # Change log
+8/2025
+* Add unit test Full Report creation
+* Updated index.html to be more readable
+
 7/2025
 * Updated to produce a version of the script (--version) based on push date and commit ID
 
