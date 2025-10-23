@@ -502,6 +502,7 @@ class GenerateXml(BaseGenerateXml):
         self.passed_count = 0
         self.useStartLine = False
         self.noResults = False
+        self.report_failed_only = False
         
         if os.path.exists(cov_path) and os.path.exists(cov_path[:-4]):
             self.using_cover = True
@@ -650,7 +651,7 @@ class GenerateXml(BaseGenerateXml):
         if self.verbose:
             print("  Writing testcase xml file:        {}".format(self.unit_report_name))
 
-        self.fh = open(self.unit_report_name, "w")
+        self.fh = open(self.unit_report_name, "wb")
         errors = 0
         failed = 0
         success = 0                                            
@@ -670,7 +671,7 @@ class GenerateXml(BaseGenerateXml):
                         self.failed_count += 1
         api.close()            
 
-        data =  "<?xml version=\"1.0\" encoding=\{}\"?>\n".format(self.encFtm)         
+        data =  "<?xml version=\"1.0\" encoding=\{}\"?>\n".format(self.encFmt)         
         data += "<testsuites>\n"
         data += "    <testsuite errors=\"{}\" tests=\"{}\" failures=\"{}\" name=\"{}\" id=\"1\">\n".format(errors, success+failed+errors, failed, escape(self.env, quote=False))
         
@@ -680,7 +681,7 @@ class GenerateXml(BaseGenerateXml):
         if self.verbose:
             print("  Writing testcase xml file:        {}".format(self.unit_report_name))
 
-        self.fh = open(self.unit_report_name, "w")
+        self.fh = open(self.unit_report_name, "wb")
         errors = 0
         failed = 0
         success = 0                                            

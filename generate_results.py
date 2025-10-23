@@ -48,6 +48,10 @@ except:
     pass
 from vector.enums import ENVIRONMENT_STATUS_TYPE_T
 
+from vcast_utils import dump, getVectorCASTEncoding
+
+encFmt = getVectorCASTEncoding()
+
 #global variables
 global verbose
 global print_exc
@@ -114,14 +118,39 @@ def readManageVersion(ManageFile):
     version = 14
     if os.path.isfile(ManageFile + ".vcm"):
         ManageFile = ManageFile + '.vcm'
-    with open(ManageFile, 'r') as projFile:
-        for line in projFile:
-            if 'version' in line and 'project' in line:
-                version = int(re.findall(r'\d+', line)[0])
-                break
+        
+    py2 = sys.version_info[0] < 3
+
+    with open(ManageFile, "rb") as projFile:
+        for raw_line in projFile:
+            # --- Normalize line to text (unicode in Py3, unicode or str in Py2) ---
+            if py2:
+                # In Py2, raw_line is a str (byte string)
+                try:
+                    line = raw_line.decode(encFmt, "replace")
+                except Exception:
+                    line = raw_line.decode("utf-8", "replace")
+            else:
+                # In Py3, raw_line is bytes
+                if isinstance(raw_line, bytes):
+                    try:
+                        line = raw_line.decode(encFmt, "replace")
+                    except Exception:
+                        line = raw_line.decode("utf-8", "replace")
+                else:
+                    line = raw_line
+
+            # --- Look for version/project keywords ---
+            if "version" in line and "project" in line:
+                match = re.search(r"\d+", line)
+                if match:
+                    version = int(match.group())
+                    break
+        
     if verbose:
         print("Version of Manage project file = %d" % version)
         print("(Levels change in version 17 (*maybe) and above)")
+        
     return version
 
 # Call manage to get the mapping of Envs to Directory etc.
@@ -324,9 +353,8 @@ def useNewAPI(FullManageProjectName, manageEnvs, level, envName, use_ci, xml_dat
                 passed_count += pc
                 generateIndividualReports(manageEnvs[currentEnv], envName)
         
-    f = open("unit_test_fail_count.txt","w")
-    f.write(str(failed_count))
-    f.close()
+    with open("unit_test_fail_count.txt","wb") as fd:
+        f.write(str(failed_count).encode(encFmt,'replace'))
     
     return failed_count, passed_count
 

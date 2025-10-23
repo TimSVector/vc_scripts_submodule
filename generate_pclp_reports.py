@@ -280,7 +280,7 @@ def generate_source():
         if os.path.isfile(fname + ".vcast.bak"):
             fname = fname + ".vcast.bak"
 
-        with open(fname, 'rb') as fh:
+        with open(fname, "rb") as fh:
             # read and replace the line ending for consistency
             contents = fh.read().encode(encFmnt, "replace")
             contents = contents.replace("\r\n", "\n").replace("\r","\n")
@@ -487,7 +487,7 @@ def emit_gitlab(msgs):
 # Driver
 
 def write_output(output, filename):
-    with open(filename, 'wb') as file:
+    with open(filename, "wb") as file:
         file.write(output.encode(encFmt, "replace"))
 
 def generate_reports(input_xml, output_text = None, output_html = None, output_json = None, output_gitlab = None, full_mp_name = None):
