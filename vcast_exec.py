@@ -371,7 +371,7 @@ class VectorCASTExecute(object):
             send_cobertura_to_bitbucket.run(
                 filename = fname,
                 minimum_passing_coverage = 0.8, 
-                verbose = self.verbose)
+                verbose = True) #self.verbose)
                 
             for html_dir in [".", self.html_base_dir, "rebuild_reports"]:
                 for html in glob.glob(os.path.join(html_dir, "*.html")) \
@@ -380,9 +380,9 @@ class VectorCASTExecute(object):
                     dest = os.path.join("reports/html",html)
                     try:
                         shutil.copyfile(html, dest)
-                        print("Copying {} --> {}".format(html.dest))
+                        print("Copying {} --> {}".format(html,dest))
                     except Exception as e:
-                        print("Error copying {} --> {}".format(html.dest))
+                        print("Error copying {} --> {}".format(html,dest))
                         print(e)
 
     def runSonarQubeMetrics(self):
