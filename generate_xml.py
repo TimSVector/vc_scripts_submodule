@@ -503,6 +503,7 @@ class GenerateXml(BaseGenerateXml):
         self.useStartLine = False
         self.noResults = False
         self.report_failed_only = False
+        self.cbtDict = None
         
         if os.path.exists(cov_path) and os.path.exists(cov_path[:-4]):
             self.using_cover = True
