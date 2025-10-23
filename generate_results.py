@@ -354,7 +354,7 @@ def useNewAPI(FullManageProjectName, manageEnvs, level, envName, use_ci, xml_dat
                 generateIndividualReports(manageEnvs[currentEnv], envName)
         
     with open("unit_test_fail_count.txt","wb") as fd:
-        f.write(str(failed_count).encode(encFmt,'replace'))
+        fd.write(str(failed_count).encode(encFmt,'replace'))
     
     return failed_count, passed_count
 
