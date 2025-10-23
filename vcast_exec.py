@@ -224,7 +224,7 @@ class VectorCASTExecute(object):
         self.cleanup(".", self.mpName + "_aggregate_report.html")
         self.cleanup(".", self.mpName + "_metrics_report.html")
         
-    def cleanup(self, dirName, fname):
+    def cleanup(self, dirName, fname = ""):
         for file in glob.glob(os.path.join(self.xml_data_dir, dirName, fname + "*.*")):
             try:
                 os.remove(file);
@@ -331,6 +331,14 @@ class VectorCASTExecute(object):
             import cobertura
             import send_cobertura_to_bitbucket
 
+            self.cleanup("coverage")
+            self.cleanup("test-results")
+            self.cleanup("reports")
+            
+            os.makedirs("coverage")
+            os.makedirs("test-results")
+            os.makedirs("reports/html")
+
             print("Generating and sending extended cobertura metrics to BitBucket")
             cobertura.generateCoverageResults(
                 self.FullMP, 
@@ -339,7 +347,22 @@ class VectorCASTExecute(object):
                 verbose = self.verbose, 
                 extended=True, 
                 source_root = self.source_root)
-                
+
+            print("Creating JUnit metrics to be ready byBitBucket")
+            failed_count, passed_count = generate_results.buildReports(
+                    FullManageProjectName = self.FullMP,
+                    level = None,
+                    envName = None,
+                    generate_individual_reports = False,
+                    timing = False,
+                    cbtDict = None,
+                    use_archive_extract = False,
+                    report_only_failures = False,
+                    no_full_report = False,
+                    use_ci = self.ci,
+                    xml_data_dir = "test-results",
+                    useStartLine = False)
+
             name  = os.path.splitext(os.path.basename(self.FullMP))[0] + ".xml"
             fname = os.path.join("coverage","coverage_results_" + name)
             
@@ -347,6 +370,18 @@ class VectorCASTExecute(object):
                 filename = fname,
                 minimum_passing_coverage = 0.8, 
                 verbose = self.verbose)
+                
+            for html_dir in [".", self.html_base_dir, "rebuild_reports"]:
+                for html in glob.glob(os.path.join(html_dir, "*.html")) \
+                          + glob.glob(os.path.join(html_dir, "*.ccs"))  \
+                          + glob.glob(os.path.join(html_dir, "*.png")): 
+                    dest = os.path.join("reports/html",html)
+                    try:
+                        shutil.copyfile(html, dest)
+                        print("Copying {} --> {}".format(html.dest))
+                    except Exception as e:
+                        print("Error copying {} --> {}".format(html.dest))
+                        print(e)
 
     def runSonarQubeMetrics(self):
         if not checkVectorCASTVersion(21):
@@ -520,7 +555,7 @@ if __name__ == '__main__':
     metricsGroup.add_argument("--html_base_dir", help='Set the base directory of the html_reports directory. The default is the workspace directory', default = "html_reports")
     metricsGroup.add_argument('--cobertura', help='Generate coverage results in Cobertura xml format', action="store_true", default = False)
     metricsGroup.add_argument('--cobertura_extended', help='Generate coverage results in extended Cobertura xml format', action="store_true", default = False)
-    metricsGroup.add_argument('--send_to_bitbucket', help='Send Cobertura data to BitBucket', action="store_true", default = False)
+    metricsGroup.add_argument('--send_to_bitbucket', help='Generate Junit and Extended Cobertura data to send to BitBucket', action="store_true", default = False)
     metricsGroup.add_argument('--lcov', help='Generate coverage results in an LCOV format', action="store_true", default = False)
     metricsGroup.add_argument('--junit', help='Generate test results in Junit xml format', action="store_true", default = False)
     metricsGroup.add_argument('--export_rgw', help='Export RGW data', action="store_true", default = False)

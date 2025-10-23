@@ -73,7 +73,8 @@ The api for vcast_exec.py follows:
       --cobertura           Generate coverage results in Cobertura xml format
       --cobertura_extended  Generate coverage results in extended Cobertura xml
                             format
-      --send_to_bitbucket   Send Cobertura data to BitBucket
+      --send_to_bitbucket   Generate Junit and Extended Cobertura data to send to
+                            BitBucket
       --lcov                Generate coverage results in an LCOV format
       --junit               Generate test results in Junit xml format
       --export_rgw          Export RGW data
