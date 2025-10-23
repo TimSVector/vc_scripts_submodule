@@ -697,10 +697,16 @@ class GenerateXml(BaseGenerateXml):
                     success += 1
                     self.passed_count += 1
                     
-        self.fh.write("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n")
-        self.fh.write("<testsuites>\n")
-        self.fh.write("    <testsuite errors=\"%d\" tests=\"%d\" failures=\"%d\" name=\"%s\" id=\"1\">\n" %
-            (errors,success+failed+errors, failed, escape(self.env, quote=False)))
+        data = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n"
+        data += "<testsuites>\n"
+        data += "    <testsuite errors=\"{}\" tests=\"{}\" failures=\"{}\" name=\"{}\" id=\"1\">\n".format(
+            errors,
+            success+failed+errors, 
+            failed, 
+            escape(self.env, quote=False)
+        )
+        
+        self.fh.write(data.encode(self.encFmt, "replace"))
 
     def get_xml_string(self, fpath = None):
 
