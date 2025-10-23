@@ -94,7 +94,41 @@ class BaseGenerateXml(object):
             column = '%s%% (%d / %d)' % (fmt_percent(x, y), x, y)
         return column
 
-
+    def convertExecStatus(self, status):
+        convertDict = { 'EXEC_SUCCESS_PASS':'Testcase passed',
+                        'EXEC_SUCCESS_FAIL':'Testcase failed',
+                        'EXEC_SUCCESS_NONE':'No expected results',
+                        'EXEC_EXECUTION_FAILED':'Testcase failed to run to completion (possible testcase timeout)',
+                        'EXEC_ABORTED':'User aborted testcase',
+                        'EXEC_TIMEOUT_EXCEEDED':'Testcase timeout',
+                        'EXEC_VXWORKS_LOAD_ERROR':'VxWorks load error',
+                        'EXEC_USER_CODE_COMPILE_FAILED':'User code failed to compile',
+                        'EXEC_COMPOUND_ONLY':'Compound only test case',
+                        'EXEC_STRICT_IMPORT_FAILED':'Strict Testcase Import Failure',
+                        'EXEC_MACRO_NOT_FOUND':'Macro not found',
+                        'EXEC_SYMBOL_OR_MACRO_NOT_FOUND':'Symbol or macro not found',
+                        'EXEC_SYMBOL_OR_MACRO_TYPE_MISMATCH':'Symbol or macro type mismatch',
+                        'EXEC_MAX_VARY_EXCEEDED':'Maximum varied parameters exceeded',
+                        'EXEC_COMPOUND_WITH_NO_SLOTS':'Compound with no slot',
+                        'EXEC_COMPOUND_WITH_ZERO_ITERATIONS':'Compound with zero slot',
+                        'EXEC_STRING_LENGTH_EXCEEDED':'Maximum string length exceeded',
+                        'EXEC_FILE_COUNT_EXCEEDED':'Maximum file count exceeded',
+                        'EXEC_EMPTY_TESTCASE':'Empty testcase',
+                        'EXEC_NO_EXPECTED_RETURN':'No expected return value',
+                        'EXEC_NO_EXPECTED_VALUES':'No expected values',
+                        'EXEC_CSV_MAP':'CSV Map',
+                        'EXEC_DRIVER_DATA_COMPILE_FAILED':'Driver data failed to compile',
+                        'EXEC_RECURSIVE_COMPOUND':'Recursive Compound Test',
+                        'EXEC_SPECIALIZED_COMPOUND_CONTAINING_COMMON':'Specialized compound containing non-specialized testcases',
+                        'EXEC_COMMON_COMPOUND_CONTAINING_SPECIALIZED':'Non-specialized compound containing specialized testcases',
+                        'EXEC_HIDING_EXPECTED_RESULTS':'Hiding expected results',
+                        'INVALID_TEST_CASE':'Invalid Test Case'
+                       }
+        try:
+            s = convertDict[str(status)]
+        except:
+            s = convertDict[status]
+        return s 
     def has_any_coverage(self,unit_or_func):
         if unit_or_func.coverdb.has_covered_function_calls or \
            unit_or_func.coverdb.has_covered_functions      or \
