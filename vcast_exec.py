@@ -366,6 +366,8 @@ class VectorCASTExecute(object):
             name  = os.path.splitext(os.path.basename(self.FullMP))[0] + ".xml"
             fname = os.path.join("coverage","cobertura","coverage_results_" + name)
             
+            print("processing file: " + fname)
+            
             send_cobertura_to_bitbucket.run(
                 filename = fname,
                 minimum_passing_coverage = 0.8, 
