@@ -364,7 +364,7 @@ class VectorCASTExecute(object):
                     useStartLine = False)
 
             name  = os.path.splitext(os.path.basename(self.FullMP))[0] + ".xml"
-            fname = os.path.join("coverage","coverage_results_" + name)
+            fname = os.path.join("coverage","cobertura","coverage_results_" + name)
             
             send_cobertura_to_bitbucket.run(
                 filename = fname,
