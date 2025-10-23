@@ -500,6 +500,8 @@ class GenerateXml(BaseGenerateXml):
         unit_path = os.path.join(build_dir,env + '.vce')
         self.failed_count = 0
         self.passed_count = 0
+        self.useStartLine = False
+        self.noResults = False
         
         if os.path.exists(cov_path) and os.path.exists(cov_path[:-4]):
             self.using_cover = True
@@ -900,10 +902,10 @@ class GenerateXml(BaseGenerateXml):
 
             testcaseString = testcaseStringExtraStatus
             data = testcaseString % (tc_name_full, unitName, deltaTimeStr, fpath, startLine, extraStatus, msg)
-            self.fh.write(data.encode(self.envFmt, "replace"))
+            self.fh.write(data.encode(self.encFmt, "replace"))
         else:
             data = testcaseString % (tc_name_full, classname, deltaTimeStr, extraStatus, msg) + "\n"     
-            self.fh.write(data.encode(self.envFmt, "replace"))   
+            self.fh.write(data.encode(self.encFmt, "replace"))   
             
 #
 # Internal - no support for skipped test cases yet
@@ -950,8 +952,8 @@ class GenerateXml(BaseGenerateXml):
 # Internal - write the end of the jUnit XML file and close it
 #
     def end_test_results_file(self):
-        self.fh.write("   </testsuite>\n".encode(self.envFmt, "replace"))
-        self.fh.write("</testsuites>\n".encode(self.envFmt, "replace")) 
+        self.fh.write("   </testsuite>\n".encode(self.encFmt, "replace"))
+        self.fh.write("</testsuites>\n".encode(self.encFmt, "replace")) 
         self.fh.close()
 
 #
