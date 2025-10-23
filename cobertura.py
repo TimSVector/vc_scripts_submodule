@@ -37,10 +37,16 @@ import sys, os
 from collections import defaultdict
 from pprint import pprint
 import argparse
+try:
+    from safe_open import open
+except:
+    pass
 
 fileList = []
 
-from vcast_utils import dump, checkVectorCASTVersion
+from vcast_utils import dump, checkVectorCASTVersion, getVectorCASTEncoding
+
+encFmt = getVectorCASTEncoding()
 
 def write_xml(x, name, verbose = False):
     
@@ -52,7 +58,8 @@ def write_xml(x, name, verbose = False):
     
     xml_str += etree.tostring(x,pretty_print=True).decode()
 
-    open(name + ".xml", "w").write(xml_str)
+    with open(name + ".xml", "wb") as fd: 
+        fd.write(xml_str.encode(encFmt,"replace"))
    
 def getCoveredFunctionCount(source):
     if len(source.functions) == 0:
@@ -86,7 +93,12 @@ def getFileXML(testXml, coverAPI, verbose = False, extended = False, source_root
     
     
     fname = coverAPI.display_name
-    fpath = os.path.relpath(coverAPI.display_path,prj_dir).replace("\\","/")
+    fpath = coverAPI.display_path
+    try:
+        fpath = os.path.relpath(fpath,prj_dir).replace("\\","/")
+    except:
+        fpath = fpath.replace("\\","/")
+        pass
 
     branch_totals = float(coverAPI.metrics.branches + coverAPI.metrics.mcdc_branches)
     branch_covered = float(coverAPI.metrics.max_covered_branches + coverAPI.metrics.max_covered_mcdc_branches)
@@ -335,11 +347,13 @@ def procesCoverage(coverXML, coverApi, extended = False, source_root = ""):
 
     if extended:
         for func in coverApi.functions:
-                      
+    
+            if isinstance(func.instrumented_functions[0].parameterized_name, bool):
+                continue
+                
             method = etree.SubElement(methods, "method")
-            
             method.attrib['name'] = func.name
-            method.attrib['signature'] = func.instrumented_functions[0].parameterized_name.replace(func.name,"",1)
+            method.attrib['signature'] = func.instrumented_functions[0].parameterized_name.replace(func.name,"",1)    
             method.attrib['line-rate'] = str(func.metrics.max_covered_statements_pct/100.0)
             
             statementPercentStr = "{:.2f}".format(func.metrics.max_covered_statements_pct) + "% (" + str(func.metrics.max_covered_statements) + "/" + str(func.metrics.statements) + ")"             
@@ -375,11 +389,13 @@ def procesCoverage(coverXML, coverApi, extended = False, source_root = ""):
     return processStatementBranchMCDC(coverApi, lines, extended)
     
 def runCoverageResultsMP(packages, mpFile, verbose = False, extended=False, source_root = ""):
-
-    vcproj = VCProjectApi(mpFile)
-    api = vcproj.project.cover_api
     
-    return runCoberturaResults(packages, api, verbose = False, extended = extended, source_root = source_root)
+    with VCProjectApi(mpFile) as vcproj:
+        api = vcproj.project.cover_api
+        
+        results = runCoberturaResults(packages, api, verbose = False, extended = extended, source_root = source_root)
+    
+    return results
     
 def runCoberturaResults(packages, api, verbose = False, extended = False, source_root = ""):
         
@@ -437,8 +453,7 @@ def runCoberturaResults(packages, api, verbose = False, extended = False, source
         except:
             prj_dir = os.getcwd().replace("\\","/") + "/"    
     
-    # get a sorted listed of all the files with the proj directory stripped off
-     
+    # get a sorted listed of all the files with the proj directory stripped off     
     for file in api.SourceFile.all():  
         if file.display_name == "":
             continue
@@ -447,7 +462,11 @@ def runCoberturaResults(packages, api, verbose = False, extended = False, source
             
         fname = file.display_name
         fpath = file.display_path.rsplit('.',1)[0]
-        fpath = os.path.relpath(fpath,prj_dir).replace("\\","/")
+        try:
+            fpath = os.path.relpath(fpath,prj_dir).replace("\\","/")
+        except:
+            fpath = fpath.replace("\\","/")
+            pass
         
         # print("*", file.name, file.display_name, fpath)
 
@@ -717,8 +736,8 @@ def generateCoverageResults(inFile, azure = False, xml_data_dir = "xml_data", ve
     coverages.attrib['timestamp'] = str(datetime.now())
     
     tool_version = os.path.join(os.environ['VECTORCAST_DIR'], "DATA", "tool_version.txt")
-    with open(tool_version,"r") as fd:
-        ver = fd.read()
+    with open(tool_version,"rb") as fd:
+        ver = fd.read().decode(encFmt,"replace")
     
     coverages.attrib['version'] = "VectorCAST " + ver.rstrip()
     
@@ -736,7 +755,7 @@ def generateCoverageResults(inFile, azure = False, xml_data_dir = "xml_data", ve
     if MCDC_rate   != -1.0: print ("mcdc pairs: {:.2f}% ({:d} out of {:d})".format(MCDC_rate*100.0, cov_mcdc, total_mcdc))
     
     if statement_rate   != -1.0: print ("coverage: {:.2f}% of statements".format(statement_rate*100.0))
-    print ("complexity: {:d}".format(complexity))
+    if complexity       != -1.0: print ("complexity: {:d}".format(complexity))
     source = etree.SubElement(sources, "source")
     source.text = "./"
 

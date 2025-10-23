@@ -19,7 +19,9 @@ import os, sys
 
 from pprint import pprint
 
-from vcast_utils import checkVectorCASTVersion
+from vcast_utils import checkVectorCASTVersion, getVectorCASTEncoding
+    
+encFmt = getVectorCASTEncoding()
 
 try:
     from safe_open import open
@@ -45,13 +47,17 @@ def parse_msgs(filename):
     directoryName = os.path.dirname(filename)
 
     try:
-        basepath = os.environ['WORKSPACE'].replace("\\","/") + "/"
+        basepath = os.environ['CI_PROJECT_DIR'].replace("\\","/") + "/"
     except:
-        basepath = os.getcwd().replace("\\","/") + "/"
-    os.environ['VCAST_RPTS_CUSTOM_CSS']=r'vc_scripts\css\tooltip.css'
+        try:
+            basepath = os.environ['WORKSPACE'].replace("\\","/") + "/"
+        except:
+            basepath = os.getcwd().replace("\\","/") + "/"
+    
+    os.environ['VCAST_RPTS_CUSTOM_CSS']= basepath + "/vc_scripts/css/tooltip.css"
 
-    with open(filename, "r") as fd:
-        pcplXmlData = fd.read()
+    with open(filename, "rb") as fd:
+        pcplXmlData = fd.read().decode(encFmt, "replace")
 
     index = pcplXmlData.find('<')
 
@@ -68,7 +74,7 @@ def parse_msgs(filename):
         try:
             adjustedFname = os.path.relpath(child.find('file').text,basepath).replace("\\","/")
         except:
-            adjustedFname = child.find('file').text
+            adjustedFname = child.find('file').text.replace("\\","/")
 
         if adjustedFname is None:
             adjustedFname = "GLOBAL"
@@ -274,9 +280,9 @@ def generate_source():
         if os.path.isfile(fname + ".vcast.bak"):
             fname = fname + ".vcast.bak"
 
-        with open(fname , 'r') as fh:
+        with open(fname, 'rb') as fh:
             # read and replace the line ending for consistency
-            contents = fh.read()
+            contents = fh.read().encode(encFmnt, "replace")
             contents = contents.replace("\r\n", "\n").replace("\r","\n")
             for lineno, line in enumerate(contents.splitlines(), start=1):
                 lineno_str = str(lineno)
@@ -305,7 +311,7 @@ def generate_source():
 def generate_html_report(mpName, input_xml, output_html):
 
     if not os.path.exists(input_xml):
-        print(f"{input_xml} was not found. Skipping PCLP HTML reporting")
+        print("{} was not found. Skipping PCLP HTML reporting".format(input_xml))
         return
 
     import pathlib
@@ -318,21 +324,19 @@ def generate_html_report(mpName, input_xml, output_html):
     if output_html is None:
         output_html = "pclp_findings.html"
 
-    api = VCProjectApi(mpName)
+    with VCProjectApi(mpName) as vcproj:
 
-    # Set custom report directory to the where this script was
-    # found. Must contain sections/index_section.py
-    rep_path = pathlib.Path(__file__).parent.resolve()
-    CustomReport.report_from_api(
-            api=api,
-            title="PC-Lint Plus Results",
-            report_type="INDEX_FILE",
-            formats=["HTML"],
-            output_file=output_html,
-            sections=['CUSTOM_HEADER', 'REPORT_TITLE', 'TABLE_OF_CONTENTS','PCLP_SUMMARY_SECTION','PCLP_DETAILS_SECTION','PCLP_SOURCE_SECTION', 'CUSTOM_FOOTER'],
-            customization_dir=rep_path)
-
-    api.close()
+        # Set custom report directory to the where this script was
+        # found. Must contain sections/index_section.py
+        rep_path = pathlib.Path(__file__).parent.resolve()
+        CustomReport.report_from_api(
+                api=vcproj,
+                title="PC-Lint Plus Results",
+                report_type="INDEX_FILE",
+                formats=["HTML"],
+                output_file=output_html,
+                sections=['CUSTOM_HEADER', 'REPORT_TITLE', 'TABLE_OF_CONTENTS','PCLP_SUMMARY_SECTION','PCLP_DETAILS_SECTION','PCLP_SOURCE_SECTION', 'CUSTOM_FOOTER'],
+                customization_dir=rep_path)
 
 def has_any_coverage(line):
 
@@ -483,16 +487,13 @@ def emit_gitlab(msgs):
 # Driver
 
 def write_output(output, filename):
-    with open(filename, 'w') as file:
-        try:
-            file.write(output)
-        except:
-            file.write(output.decode('utf-8'))
+    with open(filename, 'wb') as file:
+        file.write(output.encode(encFmt, "replace"))
 
 def generate_reports(input_xml, output_text = None, output_html = None, output_json = None, output_gitlab = None, full_mp_name = None):
     
     if not os.path.exists(input_xml):
-        print(f"{input_xml} was not found. Skipping PCLP reporting")
+        print("{} was not found. Skipping PCLP reporting".format(input_xml))
         return
 
     msgs = parse_msgs(input_xml)

@@ -179,7 +179,7 @@ def genDataApiReports(FullManageProjectName, entry, use_ci, xml_data_dir):
     global print_exc
     
     xml_file = ""
-
+    
     try:
         from generate_xml import GenerateXml
 
@@ -449,7 +449,6 @@ if __name__ == '__main__':
     parser.add_argument('--wait_time',   help='Time (in seconds) to wait between execution attempts', type=int, default=30)
     parser.add_argument('--wait_loops',   help='Number of times to retry execution', type=int, default=1)
     parser.add_argument('--timing',   help='Display timing information for report generation', action="store_true")
-    parser.add_argument('--junit',   help='Output test results in JUnit format', action="store_true")
     parser.add_argument('--cobertura',   help='Output coverage results in Cobertura format', action="store_true", default=False)
     parser.add_argument('--api',   help='Unused', type=int)
     parser.add_argument('--final',   help='Write Final JUnit Test Results file',  action="store_true")
@@ -485,12 +484,6 @@ if __name__ == '__main__':
         timing = True
     else:
         timing = False
-
-    if args.junit:
-        junit = True
-    else:
-        print ("Test results reporting has been migrated to JUnit.  If you are using older xUnit plugin with Single Jobs, please switch to using JUnit.  If you need assistance with that, contact support@us.vector.com")
-        junit = True
         
     # Used for pre VC19
     os.environ['VCAST_RPTS_PRETTY_PRINT_HTML'] = 'FALSE'

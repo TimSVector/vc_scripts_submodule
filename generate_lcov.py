@@ -40,7 +40,18 @@ from pprint import pprint
 import subprocess
 import argparse
 
-from vcast_utils import dump, checkVectorCASTVersion
+from vcast_utils import dump, checkVectorCASTVersion, getVectorCASTEncoding
+try:
+    from safe_open import open
+except:
+    pass
+    
+try:
+    import math
+    INF = math.inf
+except Exception:
+    INF = float("inf")  # Py2-compatible
+encFmt = getVectorCASTEncoding()
 
 fileList = []
 
@@ -110,30 +121,32 @@ def has_branches_covered(line):
        
 def get_function_name_line_number(file_path, function, initial_guess):
 
-    with open(file_path,"r") as fd:
-        lines = fd.readlines()
+    with open(file_path, "rb") as fd:
+        lines = [line.decode(encFmt, "replace") for line in fd.readlines()]
 
-    line_number_closest_so_far = initial_guess;
-    delta = 9999999999;
+    if initial_guess is None or initial_guess >= len(lines):
+        initial_guess = len(lines) - 1
 
-    # print(function, line_number_closest_so_far, delta, initial_guess)
-    for count, line in enumerate(reversed(lines[:initial_guess+1])):
-        if function in line.replace(" ",""):
+    line_number_closest_so_far = initial_guess
+    delta = INF
+
+    for count, line in enumerate(reversed(lines[:initial_guess + 1])):
+        if function in line.replace(" ", ""):
             line_num = initial_guess - count
             if abs(line_num - initial_guess) < delta:
                 line_number_closest_so_far = line_num
                 delta = abs(line_num - initial_guess)
-                # print(function, line_number_closest_so_far, delta, initial_guess)
-    
-    # print(line_number_closest_so_far + 1,function)
-    return line_number_closest_so_far + 1 ## add one since python starts from 0
+
+    return line_number_closest_so_far + 1  # convert 0-based to 1-based
+
 
 def runCoverageResultsMP(mpFile, verbose = False, testName = "", source_root = ""):
 
-    vcproj = VCProjectApi(mpFile)
-    api = vcproj.project.cover_api
+    with VCProjectApi(mpFile) as vcproj:
+        api = vcproj.project.cover_api
+        results = runGcovResults(api, verbose = verbose, testName = vcproj.project.name, source_root=source_root)
     
-    return runGcovResults(api, verbose = verbose, testName = vcproj.project.name, source_root=source_root)
+    return results
     
 def runGcovResults(api, verbose = False, testName = "", source_root = "") :
    
@@ -155,7 +168,10 @@ def runGcovResults(api, verbose = False, testName = "", source_root = "") :
             
         fname = file.display_name
         fpath = file.display_path.rsplit('.',1)[0]
-        fpath = os.path.relpath(fpath,prj_dir).replace("\\","/")
+        try:
+            fpath = os.path.relpath(fpath,prj_dir).replace("\\","/")
+        except:
+            fpath = fpath.replace("\\","/")
 
         fileDict[fpath] = file
 
@@ -316,7 +332,8 @@ def generateCoverageResults(inFile, xml_data_dir = "xml_data", verbose = False, 
         os.makedirs(lcov_data_dir)
 
     pathToInfo = os.path.join(lcov_data_dir, name + ".info")
-    open(pathToInfo, "w").write(output)
+    with open(pathToInfo, "wb") as fd: 
+        fd.write(output.encode(encFmt, "replace"))
 
     cmdStr = "genhtml " + pathToInfo + " --output-directory out"
     cmdArr = cmdStr.split()

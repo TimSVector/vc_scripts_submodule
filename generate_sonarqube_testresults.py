@@ -55,7 +55,9 @@ try:
 except:
     from vcast_utils import fmt_percent
     pass
-        
+    
+from vcast_utils import getVectorCASTEncoding
+
 from operator import attrgetter
 import hashlib 
 import traceback
@@ -96,15 +98,7 @@ class BaseGenerateXml(object):
         self.test_id = 1
         
         # get the VC langaguge and encoding
-        self.encFmt = 'utf-8'
-        from vector.apps.DataAPI.configuration import vcastqt_global_options
-        self.lang = vcastqt_global_options.get('Translator','english')
-        if self.lang == "english":
-            self.encFmt = "utf-8"
-        if self.lang == "japanese":
-            self.encFmt = "shift-jis"
-        if self.lang == "chinese":
-            self.encFmt = "GBK"
+        self.encFmt = getVectorCASTEncoding()
             
         self.failDict = {}
         self.passDict = {}
@@ -281,6 +275,12 @@ class GenerateManageXml (BaseGenerateXml):
 
         self.cleanupXmlDataDir()
 
+    def __del__(self):
+        try:
+            self.api.close()
+        except:
+            pass
+
     def cleanupXmlDataDir(self):
         path=os.path.join(self.xml_data_dir,"sonarqube")
         import glob
@@ -302,11 +302,6 @@ class GenerateManageXml (BaseGenerateXml):
                 print("   *INFO: File System Error creating directory: " + path + ".  Check console for environment build/execution errors")
                 if print_exc:  traceback.print_exc()
                 
-    def __del__(self):
-        try:
-            self.api.close()
-        except:
-            pass
         
     def generate_local_results(self, results, key):
         # get the level from the name
@@ -468,8 +463,8 @@ class GenerateManageXml (BaseGenerateXml):
         
         self.fh_data += "</TestRun>\n"
         
-        with open(self.unit_report_name, "w") as fd:
-            fd.write(self.fh_data)
+        with open(self.unit_report_name, "wb") as fd:
+            fd.write(self.fh_data.encode(self.encFmt, "replace"))
 
         
             
@@ -646,8 +641,8 @@ class GenerateXml(BaseGenerateXml):
     def end_test_results_file(self):
         self.fh_data += "</TestRun>\n"
         
-        with open(self.unit_report_name, "w") as fd:
-            fd.write(self.fh_data)
+        with open(self.unit_report_name, "wb") as fd:
+            fd.write(self.fh_data.encode(encFmt, "replace"))
 
 #
 # GenerateXml - start the JUnit XML file
