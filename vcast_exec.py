@@ -117,6 +117,7 @@ class VectorCASTExecute(object):
         self.junit = args.junit
         self.cobertura = args.cobertura
         self.cobertura_extended = args.cobertura_extended
+        self.send_to_bitbucket = args.send_to_bitbucket
         self.metrics = args.metrics
         self.fullstatus = args.fullstatus
         self.aggregate = args.aggregate
@@ -323,6 +324,30 @@ class VectorCASTExecute(object):
             cobertura.generateCoverageResults(self.FullMP, self.azure, self.xml_data_dir, verbose = self.verbose, 
                 extended=self.cobertura_extended, source_root = self.source_root)
 
+    def sendToBitBucket(self):
+        if not checkVectorCASTVersion(21):
+            print("Cannot create Cobertura metrics to send to BitBucket. Please upgrade VectorCAST")
+        else:
+            import cobertura
+            import send_cobertura_to_bitbucket
+
+            print("Generating and sending extended cobertura metrics to BitBucket")
+            cobertura.generateCoverageResults(
+                self.FullMP, 
+                azure = False, 
+                xml_data_dir = "coverage", 
+                verbose = self.verbose, 
+                extended=True, 
+                source_root = self.source_root)
+                
+            name  = os.path.splitext(os.path.basename(self.FullMP))[0] + ".xml"
+            fname = os.path.join("coverage","coverage_results_" + name)
+            
+            send_cobertura_to_bitbucket.run(
+                filename = fname,
+                minimum_passing_coverage = 0.8, 
+                verbose = self.verbose)
+
     def runSonarQubeMetrics(self):
         if not checkVectorCASTVersion(21):
             print("Cannot create SonarQube metrics. Please upgrade VectorCAST")
@@ -495,6 +520,7 @@ if __name__ == '__main__':
     metricsGroup.add_argument("--html_base_dir", help='Set the base directory of the html_reports directory. The default is the workspace directory', default = "html_reports")
     metricsGroup.add_argument('--cobertura', help='Generate coverage results in Cobertura xml format', action="store_true", default = False)
     metricsGroup.add_argument('--cobertura_extended', help='Generate coverage results in extended Cobertura xml format', action="store_true", default = False)
+    metricsGroup.add_argument('--send_to_bitbucket', help='Send Cobertura data to BitBucket', action="store_true", default = False)
     metricsGroup.add_argument('--lcov', help='Generate coverage results in an LCOV format', action="store_true", default = False)
     metricsGroup.add_argument('--junit', help='Generate test results in Junit xml format', action="store_true", default = False)
     metricsGroup.add_argument('--export_rgw', help='Export RGW data', action="store_true", default = False)
@@ -569,6 +595,9 @@ if __name__ == '__main__':
 
     if args.cobertura or args.cobertura_extended:
         vcExec.runCoberturaMetrics()
+        
+    if args.send_to_bitbucket:
+        vcExec.sendToBitBucket()
         
     if args.lcov:
         vcExec.runLcovMetrics()

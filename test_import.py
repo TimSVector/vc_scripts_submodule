@@ -26,6 +26,7 @@ except ModuleNotFoundError as e:
     
 try:
     import cobertura
+    import send_cobertura_to_bitbucket
     import copy_build_dir
     import create_index_html
     import extract_build_dir
