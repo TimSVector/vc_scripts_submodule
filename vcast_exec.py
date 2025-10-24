@@ -335,9 +335,12 @@ class VectorCASTExecute(object):
             self.cleanup("test-results")
             self.cleanup("reports")
             
-            os.makedirs("coverage")
-            os.makedirs("test-results")
-            os.makedirs("reports/html")
+            if not os.path.isdir("coverage"):
+                os.makedirs("coverage")
+            if not os.path.isdir("test-results"):
+                os.makedirs("test-results")
+            if not os.path.isdir("reports/html"):
+                os.makedirs("reports/html")
 
             print("Generating and sending extended cobertura metrics to BitBucket")
             cobertura.generateCoverageResults(
@@ -348,7 +351,7 @@ class VectorCASTExecute(object):
                 extended=True, 
                 source_root = self.source_root)
 
-            print("Creating JUnit metrics to be ready byBitBucket")
+            print("Creating JUnit metrics to be read by BitBucket")
             failed_count, passed_count = generate_results.buildReports(
                     FullManageProjectName = self.FullMP,
                     level = None,
