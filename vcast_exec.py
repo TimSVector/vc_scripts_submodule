@@ -374,7 +374,7 @@ class VectorCASTExecute(object):
                 os.rename(fname, new_name)
                 fname = new_name
             
-            print("processing file: " + fname)
+            print("\nProcessing {} and sending to BitBucket: ".format(fname))
             
             send_cobertura_to_bitbucket.run(
                 filename = fname,
