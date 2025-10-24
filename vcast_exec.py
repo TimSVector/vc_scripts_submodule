@@ -394,7 +394,7 @@ class VectorCASTExecute(object):
                         
                     try:
                         shutil.copyfile(html, dest)
-                        print("Copying {} --> {}".format(html,dest))
+                        if self.verbose: print("Copying {} --> {}".format(html,dest))
                     except Exception as e:
                         print("Error copying {} --> {}".format(html,dest))
                         print(e)
