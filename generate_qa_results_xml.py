@@ -24,12 +24,9 @@ def get_timestamp():
 def writeJunitHeader(currentEnv, junitfile, failed, total, unit_report_name, encoding = 'UTF-8'):
                      
     data = "<?xml version=\"1.0\" encoding=\"{}\"?>\n".format(encoding)
-    junitfile.write(data.encode(encoding, "replace"))
+    data += "<testsuites>\n  <!-- {} -->\n".format(unit_report_name)
+    data += "  <testsuite errors=\"{}\" tests=\"{}\" failures=\"{}\" name=\"{}\" id=\"1\">\n".format(0, total, failed, currentEnv)  
 
-    data = "<testsuites>\n  <!-- {} -->\n".format(unit_report_name)
-    junitfile.write(data.encode(encoding, "replace"))   
-    
-    data = "  <testsuite errors=\"{}\" tests=\"{}\" failures=\"{}\" name=\"{}\" id=\"1\">\n".format(0, total, failed, currentEnv)  
     junitfile.write(data.encode(encoding, "replace"))
 
 def writeJunitData(junitfile,all_tc_data, encoding):
