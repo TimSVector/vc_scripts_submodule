@@ -497,7 +497,7 @@ class VectorCASTExecute(object):
         self.manageWait.exec_manage_command ("--clicast-args rgw export")
 
     def runExec(self):
-
+ 
         print("Building {} with {} {}".format(self.FullMP,self.build_execute, self.incremental))
 
         self.manageWait.exec_manage_command ("--status")
