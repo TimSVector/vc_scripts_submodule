@@ -364,7 +364,7 @@ class VectorCASTExecute(object):
                     useStartLine = False)
 
             name  = os.path.splitext(os.path.basename(self.FullMP))[0] + ".xml"
-            fname = os.path.join("coverage","cobertura","coverage_results_" + name)
+            fname = os.path.join("coverage","cobertura","cobertura.xml")
             
             print("processing file: " + fname)
             
