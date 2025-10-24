@@ -80,7 +80,7 @@ class ManageWait(object):
 
             if not self.silent:
                 # logfile opened in binary mode ? always write bytes
-                print(output)
+                print(output.strip())
                 try:
                     logfile.write(output.encode(self.encFmt, 'replace'))
                 except Exception:
