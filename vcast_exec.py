@@ -378,7 +378,10 @@ class VectorCASTExecute(object):
                           + glob.glob(os.path.join(html_dir, "*.ccs"))  \
                           + glob.glob(os.path.join(html_dir, "*.png")): 
                     dest = os.path.join("reports/html",html)
-                    os.makedirs(os.path.dirname(dest))
+                    dest_dir = os.path.dirname(dest)
+                    if not os.path.isdir(dest_dir):
+                        os.makedirs(os.path.dirname(dest))
+                        
                     try:
                         shutil.copyfile(html, dest)
                         print("Copying {} --> {}".format(html,dest))
