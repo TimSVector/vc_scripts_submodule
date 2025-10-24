@@ -498,7 +498,7 @@ class VectorCASTExecute(object):
 
     def runExec(self):
  
-        print("Building {} with {} {}".format(self.FullMP,self.build_execute, self.incremental))
+        print("Building {} with {} {}".format(self.FullMP,self.build_execute, self.useCBT))
 
         self.manageWait.exec_manage_command ("--status")
         self.manageWait.exec_manage_command ("--force --release-locks")
