@@ -367,7 +367,12 @@ class VectorCASTExecute(object):
                     useStartLine = False)
 
             name  = os.path.splitext(os.path.basename(self.FullMP))[0] + ".xml"
-            fname = os.path.join("coverage","cobertura","cobertura.xml")
+            fname = os.path.join("coverage","cobertura","coverage_results_" + name)
+
+            if os.path.exists(fname):
+                new_name = os.path.join("coverage","cobertura","cobertura.xml")
+                os.rename(fname, new_name)
+                fname = new_name
             
             print("processing file: " + fname)
             
@@ -375,6 +380,8 @@ class VectorCASTExecute(object):
                 filename = fname,
                 minimum_passing_coverage = 0.8, 
                 verbose = True) #self.verbose)
+                
+
                 
             for html_dir in [".", self.html_base_dir, "rebuild_reports"]:
                 for html in glob.glob(os.path.join(html_dir, "*.html")) \
