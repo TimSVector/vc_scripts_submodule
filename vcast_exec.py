@@ -546,13 +546,17 @@ class VectorCASTExecute(object):
             parallel_build_execute.parallel_build_execute(callStr)
 
         else:      
+            jstr = ""
+            vFlag = ""
+            
             if useParallelManageCommand:
                 jstr = "--jobs=" + str(self.jobs)
-            else:
-                jstr = ""
-            cmd = "--" + self.build_execute + " " + self.useCBT + self.level_option + self.env_option + " " + jstr + " " + output 
+                if self.verbose:
+                    vFlag = "--verbose"
+                
+            cmd = "--" + self.build_execute + " " + self.useCBT + self.level_option + self.env_option + " " + jstr + " " + vFlag + " " + output 
 
-            print("Build/Execute in using manage commadn with options: {}".format(cmd))
+            print("Build/Execute in using manage command with options: {}".format(cmd))
 
             build_log = self.manageWait.exec_manage_command (cmd)
             with open(self.build_log_name,"wb") as fd: 
