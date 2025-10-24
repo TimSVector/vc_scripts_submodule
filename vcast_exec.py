@@ -498,6 +498,8 @@ class VectorCASTExecute(object):
 
     def runExec(self):
 
+        print("Building {} with {} {}".format(self.FullMP,self.build_execute, self.incremental)
+
         self.manageWait.exec_manage_command ("--status")
         self.manageWait.exec_manage_command ("--force --release-locks")
         self.manageWait.exec_manage_command ("--config VCAST_CUSTOM_REPORT_FORMAT=HTML")
@@ -533,6 +535,7 @@ class VectorCASTExecute(object):
                     callList.append(s)
 
             callStr = " ".join(callList)
+            print("Build/Execute in parallel using {}".format(" ".join(callList)))
             parallel_build_execute.parallel_build_execute(callStr)
 
         else:      
@@ -541,6 +544,8 @@ class VectorCASTExecute(object):
             else:
                 jstr = ""
             cmd = "--" + self.build_execute + " " + self.useCBT + self.level_option + self.env_option + " " + jstr + " " + output 
+
+            print("Build/Execute in using manage commadn with options: {}".format(cmd))
 
             build_log = self.manageWait.exec_manage_command (cmd)
             with open(self.build_log_name,"wb") as fd: 
