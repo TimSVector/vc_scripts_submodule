@@ -212,7 +212,7 @@ def run(filename, minimum_passing_coverage, verbose):
     encFmt = getVectorCASTEncoding()
     
 
-    with open("coverage_results.dat", "w") as fd:
+    with open("coverage_results.dat", "wb") as fd:
         fd.write(json.dumps(annotations).encode(encFmt,'replace'))
     
     send_code_coverage_annoations(
