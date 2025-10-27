@@ -61,7 +61,7 @@ def parse_cobertura(xml_path, send_all_coverage):
                     summary += " | {} MCDC: {}".format (PARTIAL, mcdcpair_coverage)
                     publishAnnotation = True
 
-            if publishAnnotation:
+            if True: #publishAnnotation:
                 annotations.append({
                     "path": file_path,
                     "line": num,
