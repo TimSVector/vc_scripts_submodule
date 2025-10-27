@@ -163,7 +163,7 @@ def send_code_coverage_annoations(annotations, workspace, repo_slug, commit_hash
         batch = annotations[i:i+100]     
                                           
         if verbose:  
-            print(json.dumps(annotations[1:10]
+            print(json.dumps(annotations[1:10]))
 
         resp = requests.post(
             url, 
