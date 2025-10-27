@@ -213,7 +213,7 @@ def run(filename, minimum_passing_coverage, verbose):
     
 
     with open("coverage_results.dat", "w") as fd:
-        write(json.dumps(annotations).encode(encFmt,'replace'))
+        fd.write(json.dumps(annotations).encode(encFmt,'replace'))
     
     send_code_coverage_annoations(
         annotations, 
