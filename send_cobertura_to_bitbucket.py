@@ -4,6 +4,8 @@ import xml.etree.ElementTree as ET
 import os, sys
 import json
 
+from vcast_utils import getVectorCASTEncoding
+
 from pprint import pprint
 
 PASS = "✅"
@@ -206,6 +208,12 @@ def run(filename, minimum_passing_coverage, verbose):
     )
     
     annotations = parse_cobertura(filename)
+    
+    encFmt = getVectorCASTEncoding()
+    
+
+    with open("coverage_results.dat", "w") as fd:
+        write(json.dumps(annotations).encode(encFmt,'replace'))
     
     send_code_coverage_annoations(
         annotations, 
