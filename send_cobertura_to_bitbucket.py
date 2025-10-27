@@ -62,24 +62,24 @@ def parse_cobertura(xml_path, send_all_coverage):
                     publishAnnotation = True
 
             if True: #publishAnnotation:
-                annotations.append({
-                    "path": file_path,
-                    "line": num,
-                    "external_id": "{}#{}".format(file_path,num),
-                    'message' : summary
-                    }
-                )
-                
                 # annotations.append({
-                    # "title": "Coverage",
-                    # "annotation_type": "COVERAGE",
-                    # "summary": summary,
-                    # "severity": "LOW",
                     # "path": file_path,
                     # "line": num,
-                    # "external_id": "{}#{}".format(file_path,num)
+                    # "external_id": "{}#{}".format(file_path,num),
+                    # 'message' : summary
                     # }
                 # )
+                
+                annotations.append({
+                    "title": "Coverage",
+                    "annotation_type": "COVERAGE",
+                    "summary": summary,
+                    "severity": "LOW",
+                    "path": file_path,
+                    "line": num,
+                    "external_id": "{}#{}".format(file_path,num)
+                    }
+                )
     return annotations
 
 def get_summary_string(type_str, rate):
