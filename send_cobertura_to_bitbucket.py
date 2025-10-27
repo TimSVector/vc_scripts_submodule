@@ -28,7 +28,6 @@ def parse_cobertura(xml_path, send_all_coverage):
             mcdcpair_coverage = line.attrib.get('mcdcpair-coverage', '')
 
             summary = ""
-            
             publishAnnotation = send_all_coverage
 
             if hits == 0:
@@ -36,30 +35,30 @@ def parse_cobertura(xml_path, send_all_coverage):
                 publishAnnotation = True
                 
             else:
-                summary = "ST: " + PASS
+                summary = PASS + " ST" 
                 if branch == 'true':
                     if condition_coverage.startswith("100.0%"):
-                        summary += " BR: {} {}".format (PASS,condition_coverage)
+                        summary += " | {} BR: {}".format (PASS,condition_coverage)
                     elif condition_coverage.startswith("0.0%"):
-                        summary += " BR: {} {}".format (FAIL,condition_coverage)
+                        summary += " | {} BR: {}".format (FAIL,condition_coverage)
                         publishAnnotation = True
                     else:
-                        summary += " BR: {} {}".format (PARTIAL,condition_coverage)
+                        summary += " | {} BR: {}".format (PARTIAL,condition_coverage)
                         publishAnnotation = True
 
                 if functioncall_coverage.startswith("100.0%"):
-                    summary += " FC: {}".format (PASS)
+                    summary += " | {} FC".format (PASS)
                 elif functioncall_coverage != '':
-                    summary += " FC: {}".format (FAIL)
+                    summary += " | {} FC".format (FAIL)
                     publishAnnotation = True
 
                 if mcdcpair_coverage.startswith("100.0%"):
-                    summary += " MCDC: {} {}".format (PASS, mcdcpair_coverage)
+                    summary += " | {} MCDC: {}".format (PASS, mcdcpair_coverage)
                 elif mcdcpair_coverage.startswith("0.0%"):
-                    summary += " MCDC: {} {}".format (FAIL, mcdcpair_coverage)
+                    summary += " | {} MCDC: {}".format (FAIL, mcdcpair_coverage)
                     publishAnnotation = True
                 elif mcdcpair_coverage != '':
-                    summary += " MCDC: {} {}".format (PARTIAL, mcdcpair_coverage)
+                    summary += " | {} MCDC: {}".format (PARTIAL, mcdcpair_coverage)
                     publishAnnotation = True
 
             if publishAnnotation:
@@ -223,7 +222,7 @@ def run(filename, minimum_passing_coverage, send_all_coverage, verbose):
     
 
     with open("coverage_results.json", "wb") as fd:
-        fd.write(json.dumps(annotations).encode(encFmt,'replace'))
+        fd.write(json.dumps(annotations, indent=2).encode(encFmt,'replace'))
     
     send_code_coverage_annoations(
         annotations, 
