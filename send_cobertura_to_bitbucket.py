@@ -2,6 +2,7 @@ import requests
 import xml.etree.ElementTree as ET
 
 import os, sys
+import json
 
 from pprint import pprint
 
@@ -53,10 +54,12 @@ def parse_cobertura(xml_path):
             annotations.append({
                 "title": "Coverage",
                 "annotation_type": "COVERAGE",
-                "summary": "PASS",      #summary,
+                "summary": summary,
                 "severity": "LOW",
-                "path": "CurrentRelease/cpp/database.cpp",
-                "line": 5
+                "path": file_path,
+                "line": num,
+                "external_id": "{}#{}".format(file_path,num)
+                
             })
     return annotations
 
@@ -127,13 +130,11 @@ def create_code_coverage_report_in_bitbucket(filename, workspace, repo_slug, com
         "title": "Coverage Report",
         "details": "VectorCAST coverage results.",
         "report_type": "COVERAGE",
-        "result": overall_coverage,
         "reporter": version,
         "data": data
     }
     
     if verbose:
-        import json
         print(json.dumps(report_payload, indent=2))
     
     resp = requests.put(
@@ -145,8 +146,7 @@ def create_code_coverage_report_in_bitbucket(filename, workspace, repo_slug, com
     )
 
     print("Report creation status:", resp.status_code)
-    if verbose:
-        print("Response:", resp.text)
+    print("Response:", resp.text)
 
 
 # Send annotations in batches of 100
@@ -160,7 +160,10 @@ def send_code_coverage_annoations(annotations, workspace, repo_slug, commit_hash
     headers = {"Accept": "application/json", "Content-Type": "application/json"},
 
     for i in range(0, len(annotations), 100):
-        batch = annotations[i:i+100]
+        batch = annotations[i:i+100]     
+                                          
+        if verbose:  
+            print(json.dumps(annotations[1:10]
 
         resp = requests.post(
             url, 
@@ -169,7 +172,8 @@ def send_code_coverage_annoations(annotations, workspace, repo_slug, commit_hash
             headers= {"Accept": "application/json", "Content-Type": "application/json"}
         )
         
-        print(f"Batch {i//100+1} response:", resp.status_code, resp.text)
+        if verbose:
+            print(f"Batch {i//100+1} response:", resp.status_code, resp.text)
 
 
 def run(filename, minimum_passing_coverage, verbose):
