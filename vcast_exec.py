@@ -126,6 +126,8 @@ class VectorCASTExecute(object):
         
         self.html_base_dir = args.html_base_dir
         self.use_cte = args.use_cte
+        self.send_all_coverage = args.send_all_coverage
+        self.minimum_passing_coverage = args.minimum_passing_coverage
         
         if args.exit_with_failed_count == 'not present':
             self.useJunitFailCountPct = False
@@ -378,10 +380,9 @@ class VectorCASTExecute(object):
             
             send_cobertura_to_bitbucket.run(
                 filename = fname,
-                minimum_passing_coverage = 0.8, 
-                verbose = True) #self.verbose)
-                
-
+                minimum_passing_coverage = self.minimum_passing_coverage, 
+                send_all_coverage = self.send_all_coverage,
+                verbose = self.verbose)
                 
             for html_dir in [".", self.html_base_dir, "rebuild_reports"]:
                 for html in glob.glob(os.path.join(html_dir, "*.html")) \
@@ -581,6 +582,10 @@ if __name__ == '__main__':
     metricsGroup.add_argument('--cobertura', help='Generate coverage results in Cobertura xml format', action="store_true", default = False)
     metricsGroup.add_argument('--cobertura_extended', help='Generate coverage results in extended Cobertura xml format', action="store_true", default = False)
     metricsGroup.add_argument('--send_to_bitbucket', help='Generate Junit and Extended Cobertura data to send to BitBucket', action="store_true", default = False)
+    metricsGroup.add_argument('--send_all_coverage', help='Send all coverage to BitBucket. Default is partial or not coveraged', action="store_true", default = False)
+    metricsGroup.add_argument('--minimum_passing_coverage', type=float, help="Minimum overall coverage required to pass (default 80 percent)",default=80)
+
+
     metricsGroup.add_argument('--lcov', help='Generate coverage results in an LCOV format', action="store_true", default = False)
     metricsGroup.add_argument('--junit', help='Generate test results in Junit xml format', action="store_true", default = False)
     metricsGroup.add_argument('--export_rgw', help='Export RGW data', action="store_true", default = False)
@@ -588,8 +593,7 @@ if __name__ == '__main__':
     metricsGroup.add_argument('--sonarqube', help='Generate test results in SonarQube Generic test execution report format (CppUnit)', action="store_true", default = False)
     metricsGroup.add_argument('--pclp_input', help='Generate static analysis results from PC-lint Plus XML file to generic static analysis format (codequality)', action="store", default = None)
     metricsGroup.add_argument('--pclp_output_html', help='Generate static analysis results from PC-lint Plus XML file to an HTML output', action="store", default = "pclp_findings.html")
-    metricsGroup.add_argument('--exit_with_failed_count', help='Returns failed test case count as script exit.  Set a value to indicate a percentage above which the job will be marked as failed', 
-                               nargs='?', default='not present', const='(default 0)')
+    metricsGroup.add_argument('--exit_with_failed_count', help='Returns failed test case count as script exit. Set a value to indicate a percentage above which the job will be marked as failed', nargs='?', default='not present', const='(default 0)')
 
     reportGroup = parser.add_argument_group('Report Selection', 'VectorCAST Manage reports that can be generated')
     reportGroup.add_argument('--aggregate', help='Generate aggregate coverage report VectorCAST Project', action="store_true", default = False)
@@ -603,7 +607,7 @@ if __name__ == '__main__':
     
     beGroup.add_argument('--jobs', help='Number of concurrent jobs (default = 1)', default="1")
     beGroup.add_argument('--ci', help='Use Continuous Integration Licenses', action="store_true", default = False)
-    beGroup.add_argument('-l', '--level',   help='Environment Name if only doing single environment.  Should be in the form of compiler/testsuite', default=None)
+    beGroup.add_argument('-l', '--level',   help='Environment Name if only doing single environment. Should be in the form of compiler/testsuite', default=None)
     beGroup.add_argument('-e', '--environment',   help='Environment Name if only doing single environment.', default=None)
 
     parser_specify = beGroup.add_mutually_exclusive_group()
@@ -684,6 +688,6 @@ if __name__ == '__main__':
         vcExec.exportRgw()
         
     if vcExec.useJunitFailCountPct:
-        print("--exit_with_failed_count=" + args.exit_with_failed_count + " specified.  Fail Percent = " + str(round(vcExec.failed_pct,0)) + "% Return code: ", str(vcExec.failed_count))
+        print("--exit_with_failed_count=" + args.exit_with_failed_count + " specified. Fail Percent = " + str(round(vcExec.failed_pct,0)) + "% Return code: ", str(vcExec.failed_count))
         sys.exit(vcExec.failed_count)
         

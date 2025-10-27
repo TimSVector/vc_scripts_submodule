@@ -13,7 +13,7 @@ FAIL = "❌"
 PARTIAL = "🟡"
 
 # Parse Cobertura XML
-def parse_cobertura(xml_path):
+def parse_cobertura(xml_path, send_all_coverage):
     tree = ET.parse(xml_path)
     root = tree.getroot()
     annotations = []
@@ -28,9 +28,13 @@ def parse_cobertura(xml_path):
             mcdcpair_coverage = line.attrib.get('mcdcpair-coverage', '')
 
             summary = ""
+            
+            publishAnnotation = send_all_coverage
 
             if hits == 0:
                 summary = FAIL + " No coverage on line."
+                publishAnnotation = True
+                
             else:
                 summary = "ST: " + PASS
                 if branch == 'true':
@@ -38,29 +42,35 @@ def parse_cobertura(xml_path):
                         summary += " BR: {} {}".format (PASS,condition_coverage)
                     elif condition_coverage.startswith("0.0%"):
                         summary += " BR: {} {}".format (FAIL,condition_coverage)
+                        publishAnnotation = True
                     else:
                         summary += " BR: {} {}".format (PARTIAL,condition_coverage)
+                        publishAnnotation = True
 
                 if functioncall_coverage.startswith("100.0%"):
                     summary += " FC: {}".format (PASS)
                 elif functioncall_coverage != '':
                     summary += " FC: {}".format (FAIL)
+                    publishAnnotation = True
 
                 if mcdcpair_coverage.startswith("100.0%"):
                     summary += " MCDC: {} {}".format (PASS, mcdcpair_coverage)
                 elif mcdcpair_coverage.startswith("0.0%"):
                     summary += " MCDC: {} {}".format (FAIL, mcdcpair_coverage)
+                    publishAnnotation = True
                 elif mcdcpair_coverage != '':
                     summary += " MCDC: {} {}".format (PARTIAL, mcdcpair_coverage)
+                    publishAnnotation = True
 
-            annotations.append({
-                "title": "Coverage",
-                "annotation_type": "COVERAGE",
-                "summary": summary,
-                "severity": "LOW",
-                "path": file_path,
-                "line": num,
-                "external_id": "{}#{}".format(file_path,num)
+            if publishAnnotation:
+                annotations.append({
+                    "title": "Coverage",
+                    "annotation_type": "COVERAGE",
+                    "summary": summary,
+                    "severity": "LOW",
+                    "path": file_path,
+                    "line": num,
+                    "external_id": "{}#{}".format(file_path,num)
                 
             })
     return annotations
@@ -188,7 +198,7 @@ def send_code_coverage_annoations(annotations, workspace, repo_slug, commit_hash
     print("Complete")
 
 
-def run(filename, minimum_passing_coverage, verbose):
+def run(filename, minimum_passing_coverage, send_all_coverage, verbose):
 
     workspace   = os.environ['BITBUCKET_WORKSPACE']
     repo_slug   = os.environ['BITBUCKET_REPO_SLUG']
@@ -207,7 +217,7 @@ def run(filename, minimum_passing_coverage, verbose):
         verbose
     )
     
-    annotations = parse_cobertura(filename)
+    annotations = parse_cobertura(filename, send_all_coverage)
     
     encFmt = getVectorCASTEncoding()
     
@@ -237,11 +247,19 @@ if __name__ == "__main__":
         help="Path to the Cobertura XML file to parse",
         default="cobertura.xml"
     )
+
     parser.add_argument(
-        "-m", "--minimum",
+        "-a", "--send_all_coverage",
+        help="Report all coverage.  Default is partial/fail only",
+        action="store_true",
+        default=False
+    )
+
+    parser.add_argument(
+        "--minimum_passing_coverage",
         type=float,
-        help="Minimum overall coverage required to pass (e.g., 0.8 for 80%)",
-        default=0.8
+        help="Minimum overall coverage required to pass (default 80 percent)",
+        default=80
     )
     
     parser.add_argument(
@@ -252,5 +270,5 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
 
-    run(args.filename, args.minimum, args.verbose)
+    run(args.filename, args.minimum_passing_coverage, args.send_all_coverage, args.verbose)
 
