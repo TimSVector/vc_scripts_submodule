@@ -65,7 +65,7 @@ def parse_cobertura(xml_path, send_all_coverage):
                 annotations.append({
                     "path": file_path,
                     "line": num,
-                    "external_id": "{}#{}".format(file_path,num)
+                    "external_id": "{}#{}".format(file_path,num),
                     'message' : summary
                     }
                 )
