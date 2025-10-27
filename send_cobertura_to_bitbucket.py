@@ -119,6 +119,8 @@ def get_summary_resuts(xml_path, minimum_passing_coverage, verbose):
     
 def create_code_coverage_report_in_bitbucket(filename, workspace, repo_slug, commit_hash, email, token, minimum_passing_coverage, verbose):
     
+    print("Creating coverage report for commit {}".format(commit_hash))
+    
     # CONFIGURATION
     report_id = "coverage-report"
 
@@ -145,8 +147,12 @@ def create_code_coverage_report_in_bitbucket(filename, workspace, repo_slug, com
         timeout=30
     )
 
-    print("Report creation status:", resp.status_code)
-    print("Response:", resp.text)
+    if resp.status_code == "200":
+        print("Reported Created")
+    else:
+        print("Reported Creation - FAILED")
+        print("Report creation status:", resp.status_code)
+        print("Response:", resp.text)
 
 
 # Send annotations in batches of 100
