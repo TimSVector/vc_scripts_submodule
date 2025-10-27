@@ -147,7 +147,7 @@ def create_code_coverage_report_in_bitbucket(filename, workspace, repo_slug, com
         timeout=30
     )
 
-    if resp.status_code == "200":
+    if resp.status_code == 200:
         print("Reported Created")
     else:
         print("Reported Creation - FAILED")
@@ -158,6 +158,8 @@ def create_code_coverage_report_in_bitbucket(filename, workspace, repo_slug, com
 # Send annotations in batches of 100
 def send_code_coverage_annoations(annotations, workspace, repo_slug, commit_hash, email, token, verbose):
     
+    print("Sending coverage annotations")
+
     # CONFIGURATION
     report_id = "coverage-report"
 
@@ -178,8 +180,10 @@ def send_code_coverage_annoations(annotations, workspace, repo_slug, commit_hash
             headers= {"Accept": "application/json", "Content-Type": "application/json"}
         )
         
-        if verbose:
+        if resp.status_code != 200 or verbose:
             print(f"Batch {i//100+1} response:", resp.status_code, resp.text)
+
+    print("Complete")
 
 
 def run(filename, minimum_passing_coverage, verbose):
