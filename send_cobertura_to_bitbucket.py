@@ -28,7 +28,7 @@ def parse_cobertura(xml_path, send_all_coverage):
             mcdcpair_coverage = line.attrib.get('mcdcpair-coverage', '')
 
             summary = ""
-            publishAnnotation = send_all_coverage
+            publishAnnotation = True #send_all_coverage
 
             if hits == 0:
                 summary = FAIL + " No coverage on line."
@@ -63,15 +63,23 @@ def parse_cobertura(xml_path, send_all_coverage):
 
             if publishAnnotation:
                 annotations.append({
-                    "title": "Coverage",
-                    "annotation_type": "COVERAGE",
-                    "summary": summary,
-                    "severity": "LOW",
                     "path": file_path,
                     "line": num,
                     "external_id": "{}#{}".format(file_path,num)
+                    'message' : summary
+                    }
+                )
                 
-            })
+                # annotations.append({
+                    # "title": "Coverage",
+                    # "annotation_type": "COVERAGE",
+                    # "summary": summary,
+                    # "severity": "LOW",
+                    # "path": file_path,
+                    # "line": num,
+                    # "external_id": "{}#{}".format(file_path,num)
+                    # }
+                # )
     return annotations
 
 def get_summary_string(type_str, rate):
@@ -113,11 +121,11 @@ def get_summary_resuts(xml_path, minimum_passing_coverage, verbose):
         # If you ever have more coverage types, you can refactor like this:
 
         metrics = [
-            ("Statement Coverage %",     statement_rate),
-            ("Branch Coverage %",        branch_rate),
-            ("MCDC Pair Coverage %",     mcdcpair_coverage_rate),
-            ("Function Call Coverage %", function_coverage_rate),
-            ("Function Coverage %",      functioncall_coverage_rate),
+            ("Statement",     statement_rate),
+            ("Branch",        branch_rate),
+            ("MCDC Pair",     mcdcpair_coverage_rate),
+            ("Function Call", functioncall_coverage_rate),
+            ("Function ",     function_coverage_rate),
         ]
 
         data = [
@@ -141,7 +149,7 @@ def create_code_coverage_report_in_bitbucket(filename, workspace, repo_slug, com
 
     report_payload = {
         "title": "Coverage Report",
-        "details": "VectorCAST coverage results.",
+        "details": "VectorCAST Code Coverage Summary.",
         "report_type": "COVERAGE",
         "reporter": version,
         "data": data
