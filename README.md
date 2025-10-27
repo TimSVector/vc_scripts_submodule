@@ -34,8 +34,10 @@ The api for vcast_exec.py follows:
     usage: vcast_exec.py [-h] [--build-execute] [--build | --incremental]
                          [--output_dir OUTPUT_DIR] [--source_root SOURCE_ROOT]
                          [--html_base_dir HTML_BASE_DIR] [--cobertura]
-                         [--cobertura_extended] [--send_to_bitbucket] [--lcov]
-                         [--junit] [--export_rgw] [--sonarqube]
+                         [--cobertura_extended] [--send_to_bitbucket]
+                         [--send_all_coverage]
+                         [--minimum_passing_coverage MINIMUM_PASSING_COVERAGE]
+                         [--lcov] [--junit] [--export_rgw] [--sonarqube]
                          [--pclp_input PCLP_INPUT]
                          [--pclp_output_html PCLP_OUTPUT_HTML]
                          [--exit_with_failed_count [EXIT_WITH_FAILED_COUNT]]
@@ -75,6 +77,11 @@ The api for vcast_exec.py follows:
                             format
       --send_to_bitbucket   Generate Junit and Extended Cobertura data to send to
                             BitBucket
+      --send_all_coverage   Send all coverage to BitBucket. Default is partial or
+                            not coveraged
+      --minimum_passing_coverage MINIMUM_PASSING_COVERAGE
+                            Minimum overall coverage required to pass (default 80
+                            percent)
       --lcov                Generate coverage results in an LCOV format
       --junit               Generate test results in Junit xml format
       --export_rgw          Export RGW data
@@ -124,6 +131,7 @@ The api for vcast_exec.py follows:
       --timing              Prints timing information for metrics generation
       -v, --verbose         Enable verbose output
       --version             Displays the version information
+
 ```
 
 # Change log
