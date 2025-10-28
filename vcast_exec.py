@@ -128,6 +128,7 @@ class VectorCASTExecute(object):
         self.use_cte = args.use_cte
         self.send_all_coverage = args.send_all_coverage
         self.minimum_passing_coverage = args.minimum_passing_coverage
+        self.noIndex = args.noindex
         
         if args.exit_with_failed_count == 'not present':
             self.useJunitFailCountPct = False
@@ -601,7 +602,7 @@ if __name__ == '__main__':
     reportGroup.add_argument('--fullstatus', help='Generate full status reports for VectorCAST Project', action="store_true", default = False)
     reportGroup.add_argument('--utfull', help='Generate Full Reports for each VectorCAST environment in project', action="store_true", default = False)
     reportGroup.add_argument('--tcmr', help='Generate Test Cases Management Reports for each VectorCAST environment in project', action="store_true", default = False)
-    reportGroup.add_argument('--index', help='Generate an index.html report that ties all the other HTML reports together', action="store_true", default = False)
+    reportGroup.add_argument('--noindex', help='Stops index.html report that ties all the other HTML reports together from being created', action="store_true", default = False)
 
     beGroup = parser.add_argument_group('Build/Execution Options', 'Options that effect build/execute operation')
     
@@ -681,7 +682,7 @@ if __name__ == '__main__':
     if args.utfull:
         vcExec.generateUtFullReport()
 
-    if vcExec.needIndexHtml or args.index:
+    if vcExec.needIndexHtml and not vcExec.noIndex:
         vcExec.generateIndexHtml()
         
     if args.export_rgw:
