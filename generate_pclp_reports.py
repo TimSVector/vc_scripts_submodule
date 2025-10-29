@@ -1,11 +1,26 @@
-#####################################################################
-# PC-lint Plus Report Generator / Output Format Converter
 #
-# Invoke with no arguments for command-line help screen with
-# usage information, option list, and supported output formats.
+# The MIT License
 #
-# Last Updated 2023-02-07
-#####################################################################
+# Copyright 2025 Vector Informatik, GmbH.
+#
+# Permission is hereby granted, free of charge, to any person obtaining a copy
+# of this software and associated documentation files (the "Software"), to deal
+# in the Software without restriction, including without limitation the rights
+# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+# copies of the Software, and to permit persons to whom the Software is
+# furnished to do so, subject to the following conditions:
+#
+# The above copyright notice and this permission notice shall be included in
+# all copies or substantial portions of the Software.
+#
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+# THE SOFTWARE.
+#
 
 import argparse
 try:
@@ -226,6 +241,7 @@ def generate_source():
         print("XXX Cannot generate Source Code section of the PC-Line Report report")
         print("XXX The Summary and File Detail sections are present")
         print("XXX If you'd like to see the Source Code section of the PC-Line Report, please upgrade VectorCAST")
+        sys.modules[__name__] = None
 
     fullMpName = globalState.fullMpName
     msgs = globalState.msgs
@@ -280,7 +296,7 @@ def generate_source():
         if os.path.isfile(fname + ".vcast.bak"):
             fname = fname + ".vcast.bak"
 
-        with open(fname, "rb") as fh:
+        with open(fname, 'rb') as fh:
             # read and replace the line ending for consistency
             contents = fh.read().encode(encFmnt, "replace")
             contents = contents.replace("\r\n", "\n").replace("\r","\n")
@@ -487,7 +503,7 @@ def emit_gitlab(msgs):
 # Driver
 
 def write_output(output, filename):
-    with open(filename, "wb") as file:
+    with open(filename, 'wb') as file:
         file.write(output.encode(encFmt, "replace"))
 
 def generate_reports(input_xml, output_text = None, output_html = None, output_json = None, output_gitlab = None, full_mp_name = None):
@@ -512,7 +528,7 @@ def main():
 
     parser.add_argument('--input-xml', action='store', help='XML input filename', required=True)
     parser.add_argument('--output-html', action='store', help='HTML output filename', default = None, required=False)
-    parser.add_argument('--vc-project', action='store', help='VectorCAST Project Name.  Used for source view', dest="full_mp_name", required=True)
+    parser.add_argument('--vc-project', action='store', help='VectorCAST Project Name. Used for source view', dest="full_mp_name", required=True)
 
     parser.add_argument('--output-text', action='store', help=argparse.SUPPRESS, default = None, required=False)
     parser.add_argument('--output-json', action='store', help=argparse.SUPPRESS, default = None, required=False)

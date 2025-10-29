@@ -116,8 +116,8 @@ def getFileXML(testXml, coverAPI, verbose = False, extended = False, source_root
     file = None
 
     if verbose:
-        print ("   fname   = ", fname)
-        print ("   fpath   = ", fpath)
+        print ("   fname   = " + fname)
+        print ("   fpath   = " + fpath)
     
     for element in testXml.iter():
         if element.tag == "class" and element.attrib['filename'] == fpath:
@@ -769,7 +769,8 @@ if __name__ == '__main__':
     
     if not checkVectorCASTVersion(21):
         print("Cannot create Cobertura metrics. Please upgrade VectorCAST")
-        sys.exit()
+        sys.modules[__name__] = None
+
             
     parser = argparse.ArgumentParser()
     parser.add_argument('ManageProject',     help='Manager Project Name')

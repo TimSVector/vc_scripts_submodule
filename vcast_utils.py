@@ -84,7 +84,7 @@ def checkVectorCASTVersion(minimumVersion, quiet = False):
 
     if verNo >= minimumVersion:
         if not quiet:
-            print("Running with VC Version: ", ver);
+            print("Running with VC Version: " + ver);
         return True
         
     if not quiet:

@@ -35,10 +35,11 @@ except:
         import importlib
         generate_results = importlib.import_module("generate-results")
     except:
-        vc_script = os.path.join(os.environ['WORKSPACE'], "vc_scripts", "generate-results.py")
         import imp
-        generate_results = imp.load_source("generate_results", vc_script)
-
+        script_dir = os.path.dirname(os.path.abspath(__file__))
+        vc_script = os.path.join(script_dir, "generate-results.py")
+        generate_results = imp.load_source("generate_results", vc_script)   
+        
 if sys.version_info[0] < 3:
     python_path_updates = os.path.join(os.environ['VECTORCAST_DIR'], "DATA", "python")
     sys.path.append(python_path_updates)
@@ -76,7 +77,9 @@ def displayVersion():
     if os.path.exists(version_path):
         with open(version_path,"rb") as fd:
             versionInfo = fd.read().decode(self.encFmt, "replace")
-    print("vc_scripts_submodule Version: ", versionInfo)
+        print("vc_scripts_submodule Version: " + versionInfo)
+    else:
+        print("Can't Read Version of Jenkins Integration. See console log.")
 
 class VectorCASTExecute(object):
     
@@ -151,11 +154,11 @@ class VectorCASTExecute(object):
             self.xml_data_dir = "xml_data"
         
         if args.build and not args.build_execute:
-            self.build_execute = "build"
-            self.vcast_action = "--vcast_action " + self.build_execute
+            self.build_execute = "--build"
+            self.vcast_action = "--vcast_action build"
         elif args.build_execute:
-            self.build_execute = "build-execute"
-            self.vcast_action = "--vcast_action " + self.build_execute
+            self.build_execute = "--build-execute"
+            self.vcast_action = "--vcast_action build-execute"
         else:
             self.build_execute = ""
             self.vcast_action = ""
@@ -168,14 +171,14 @@ class VectorCASTExecute(object):
         self.encFmt = getVectorCASTEncoding()
 
         if args.ci:
-            self.useCI = " --use_ci "
-            self.ci = " --ci "
+            self.useCI = "--use_ci"
+            self.ci = "--ci"
         else:
             self.useCI = ""
             self.ci = ""
             
         if args.incremental:
-            self.useCBT = " --incremental "
+            self.useCBT = "--incremental"
         else:
             self.useCBT = ""
                   
@@ -218,7 +221,14 @@ class VectorCASTExecute(object):
         else:
             self.build_log_name = self.mpName + "_build.log"    
 
-        self.manageWait = ManageWait(self.verbose, "", 30, 1, self.FullMP, self.ci)
+        self.manageWait = ManageWait(
+            verbose = self.verbose, 
+            command_line = "", 
+            wait_time = 30, 
+            wait_loops= 1, 
+            mpName = self.FullMP, 
+            useCI = self.ci
+        )
             
         self.cleanup("junit", "test_results_")
         self.cleanup("cobertura", "coverage_results_")
@@ -227,7 +237,7 @@ class VectorCASTExecute(object):
         self.cleanup(".", self.mpName + "_aggregate_report.html")
         self.cleanup(".", self.mpName + "_metrics_report.html")
         
-    def cleanup(self, dirName, fname = ""):
+    def cleanup(self, dirName, fname):
         for file in glob.glob(os.path.join(self.xml_data_dir, dirName, fname + "*.*")):
             try:
                 os.remove(file);
@@ -548,19 +558,18 @@ class VectorCASTExecute(object):
             parallel_build_execute.parallel_build_execute(callStr)
 
         else:      
-            jstr = ""
-            vFlag = ""
-            
             if useParallelManageCommand:
                 jstr = "--jobs=" + str(self.jobs)
-                if self.verbose:
-                    vFlag = "--verbose"
+            else:
+                jstr = ""
                 
-            cmd = "--" + self.build_execute + " " + self.useCBT + self.level_option + self.env_option + " " + jstr + " " + vFlag + " " + output 
+            cmd = "{} {} {} {} {} {} {}".format(self.build_execute, self.level_option , self.useCBT, self.env_option, jstr, "--verbose", output)
 
             print("Build/Execute in using manage command with options: {}".format(cmd))
 
             build_log = self.manageWait.exec_manage_command (cmd)
+            if os.path.exists("command.log"):
+                shutil.copyfile('command.log', "complete_build.log")
             with open(self.build_log_name,"wb") as fd: 
                 fd.write(build_log.encode(self.encFmt, "replace"))
 
@@ -568,7 +577,7 @@ class VectorCASTExecute(object):
 if __name__ == '__main__':
 
     parser = argparse.ArgumentParser()
-    parser.add_argument('ManageProject', nargs='?', help='VectorCAST Project Name')
+    parser.add_argument('ManageProject', nargs='?', help='VectorCAST Project Name', default="")
     
     actionGroup = parser.add_argument_group('Script Actions', 'Options for the main tasks')
     actionGroup.add_argument('--build-execute', help='Builds and exeuctes the VectorCAST Project', action="store_true", default = False)
@@ -585,8 +594,6 @@ if __name__ == '__main__':
     metricsGroup.add_argument('--send_to_bitbucket', help='Generate Junit and Extended Cobertura data to send to BitBucket', action="store_true", default = False)
     metricsGroup.add_argument('--send_all_coverage', help='Send all coverage to BitBucket. Default is partial or not coveraged', action="store_true", default = False)
     metricsGroup.add_argument('--minimum_passing_coverage', type=float, help="Minimum overall coverage required to pass (default 80 percent)",default=80)
-
-
     metricsGroup.add_argument('--lcov', help='Generate coverage results in an LCOV format', action="store_true", default = False)
     metricsGroup.add_argument('--junit', help='Generate test results in Junit xml format', action="store_true", default = False)
     metricsGroup.add_argument('--export_rgw', help='Export RGW data', action="store_true", default = False)
@@ -594,7 +601,8 @@ if __name__ == '__main__':
     metricsGroup.add_argument('--sonarqube', help='Generate test results in SonarQube Generic test execution report format (CppUnit)', action="store_true", default = False)
     metricsGroup.add_argument('--pclp_input', help='Generate static analysis results from PC-lint Plus XML file to generic static analysis format (codequality)', action="store", default = None)
     metricsGroup.add_argument('--pclp_output_html', help='Generate static analysis results from PC-lint Plus XML file to an HTML output', action="store", default = "pclp_findings.html")
-    metricsGroup.add_argument('--exit_with_failed_count', help='Returns failed test case count as script exit. Set a value to indicate a percentage above which the job will be marked as failed', nargs='?', default='not present', const='(default 0)')
+    metricsGroup.add_argument('--exit_with_failed_count', help='Returns failed test case count as script exit. Set a value to indicate a percentage above which the job will be marked as failed', 
+                               nargs='?', default='not present', const='(default 0)')
 
     reportGroup = parser.add_argument_group('Report Selection', 'VectorCAST Manage reports that can be generated')
     reportGroup.add_argument('--aggregate', help='Generate aggregate coverage report VectorCAST Project', action="store_true", default = False)
@@ -623,6 +631,10 @@ if __name__ == '__main__':
 
     args = parser.parse_args()
     
+    if args.version:
+        displayVersion()
+        sys.exit(0)
+        
     # Conditional requirement check
     if not args.version and not args.ManageProject:
         parser.error("ManageProject is required unless --version is specified")
@@ -635,10 +647,6 @@ if __name__ == '__main__':
         print ("Manage project (.vcm file) provided does not exist: " + args.ManageProject)
         print ("exiting...")
         sys.exit(-1)
-
-    if args.version:
-        displayVersion()
-        sys.exit(0)
 
     if args.ci:
         os.environ['VCAST_USE_CI_LICENSES'] = "1"
@@ -689,6 +697,6 @@ if __name__ == '__main__':
         vcExec.exportRgw()
         
     if vcExec.useJunitFailCountPct:
-        print("--exit_with_failed_count=" + args.exit_with_failed_count + " specified. Fail Percent = " + str(round(vcExec.failed_pct,0)) + "% Return code: ", str(vcExec.failed_count))
+        print("--exit_with_failed_count=" + args.exit_with_failed_count + " specified. Fail Percent = " + str(round(vcExec.failed_pct,0)) + "% Return code: " + str(vcExec.failed_count))
         sys.exit(vcExec.failed_count)
         
