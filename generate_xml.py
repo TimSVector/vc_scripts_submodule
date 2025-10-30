@@ -920,11 +920,17 @@ class GenerateXml(BaseGenerateXml):
                     expectedResultsFailure += " and "
                 expectedResultsFailure += "Expected values totals"
 
-            if tcSkipped:
+            if whyFail == "Signal failure. ":
+                extraStatus = '<failure type="failure" message="Signal failure"/>'
+                
+            elif extra_message == "Strict Test Import Failure":
+                extraStatus = '<failure type="failure" message="Strict Test Import Failure"/>'
+                
+            elif tcSkipped:
                 status = "skipped"
-                extraStatus = "<failure type=\"failure\" message=\"{}. {}{}: {}/{}\"/>".format(extra_message, whyFail, expectedResultsFailure, exp_pass, exp_total)
+                extraStatus = '<failure type="failure" message="{}. {}{}: {}/{}"/>'.format(extra_message, whyFail, expectedResultsFailure, exp_pass, exp_total)
             else:
-                extraStatus = "<failure type=\"failure\" message=\"{}. {}{}: {}/{}\"/>".format(extra_message, whyFail, expectedResultsFailure, exp_pass, exp_total)
+                extraStatus = '<failure type="failure\" message="{}. {}{}: {}/{}"/>'.format(extra_message, whyFail, expectedResultsFailure, exp_pass, exp_total)
 
         elif tcSkipped:
             extraStatus = "<skipped/>"
