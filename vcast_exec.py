@@ -236,9 +236,14 @@ class VectorCASTExecute(object):
         self.cleanup("pclp", "gl-code-quality-report.json")
         self.cleanup(".", self.mpName + "_aggregate_report.html")
         self.cleanup(".", self.mpName + "_metrics_report.html")
+        self.cleanup(".", "*.log")
         
-    def cleanup(self, dirName, fname):
-        for file in glob.glob(os.path.join(self.xml_data_dir, dirName, fname + "*.*")):
+    def cleanup(self, dirName, fname = ""): 
+    
+        if fname == "":
+            fname = "*.*"
+            
+        for file in glob.glob(os.path.join(self.xml_data_dir, dirName, fname)):
             try:
                 os.remove(file);
             except:
