@@ -28,7 +28,11 @@ import time
 from datetime import timedelta
 from io import open
 
-import incremental_build_report_aggregator
+aggregate_incremental_build_reports = True
+try:
+    import incremental_build_report_aggregator
+except ImportError:
+    aggregate_incremental_build_reports = False
 
 from vcast_utils import getVectorCASTEncoding
 
@@ -326,7 +330,10 @@ class ParallelExecute(object):
             fd.write(build_log_data.encode(self.encFmt, "replace"))
         
         if self.incremental:
-            incremental_build_report_aggregator.parse_html_files(self.mpName)
+            if aggregate_incremental_build_reports:
+                incremental_build_report_aggregator.parse_html_files(self.mpName)
+            else:
+                print("Cannot combine incremental rebuild reports with this version of VectorCAST. Please upgrade")
         
     def doit(self):
         ## create the directory structure in the manage project before building

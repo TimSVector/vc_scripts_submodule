@@ -30,6 +30,11 @@ import locale
 import os, shutil, glob, logging
 import sys, os
 
+from vcast_utils import checkVectorCASTVersion
+
+if not checkVectorCASTVersion(21):
+    raise ImportError("Cannot combine incremental rebuild reports with this version of VectorCAST. Please upgrade.")
+    
 from bs4 import BeautifulSoup
 
 try:

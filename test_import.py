@@ -1,6 +1,6 @@
 import os, sys
 import traceback
-
+from vcast_utils import checkVectorCASTVersion
 try:
     ModuleNotFoundError
 except NameError:
@@ -58,7 +58,9 @@ try:
     import generate_sonarqube_testresults
     import generate_xml
     import getjobs
-    import incremental_build_report_aggregator
+    if checkVectorCASTVersion(21):
+        import incremental_build_report_aggregator
+    
     import managewait
     import merge_vcr
     import patch_rgw_directory
