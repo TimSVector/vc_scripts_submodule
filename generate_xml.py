@@ -95,40 +95,42 @@ class BaseGenerateXml(object):
         return column
 
     def convertExecStatus(self, status):
-        convertDict = { 'EXEC_SUCCESS_PASS':'Testcase passed',
-                        'EXEC_SUCCESS_FAIL':'Testcase failed',
-                        'EXEC_SUCCESS_NONE':'No expected results',
-                        'EXEC_EXECUTION_FAILED':'Testcase failed to run to completion (possible testcase timeout)',
-                        'EXEC_ABORTED':'User aborted testcase',
-                        'EXEC_TIMEOUT_EXCEEDED':'Testcase timeout',
-                        'EXEC_VXWORKS_LOAD_ERROR':'VxWorks load error',
-                        'EXEC_USER_CODE_COMPILE_FAILED':'User code failed to compile',
-                        'EXEC_COMPOUND_ONLY':'Compound only test case',
-                        'EXEC_STRICT_IMPORT_FAILED':'Strict Testcase Import Failure',
-                        'EXEC_MACRO_NOT_FOUND':'Macro not found',
-                        'EXEC_SYMBOL_OR_MACRO_NOT_FOUND':'Symbol or macro not found',
-                        'EXEC_SYMBOL_OR_MACRO_TYPE_MISMATCH':'Symbol or macro type mismatch',
-                        'EXEC_MAX_VARY_EXCEEDED':'Maximum varied parameters exceeded',
-                        'EXEC_COMPOUND_WITH_NO_SLOTS':'Compound with no slot',
-                        'EXEC_COMPOUND_WITH_ZERO_ITERATIONS':'Compound with zero slot',
-                        'EXEC_STRING_LENGTH_EXCEEDED':'Maximum string length exceeded',
-                        'EXEC_FILE_COUNT_EXCEEDED':'Maximum file count exceeded',
-                        'EXEC_EMPTY_TESTCASE':'Empty testcase',
-                        'EXEC_NO_EXPECTED_RETURN':'No expected return value',
-                        'EXEC_NO_EXPECTED_VALUES':'No expected values',
-                        'EXEC_CSV_MAP':'CSV Map',
-                        'EXEC_DRIVER_DATA_COMPILE_FAILED':'Driver data failed to compile',
-                        'EXEC_RECURSIVE_COMPOUND':'Recursive Compound Test',
-                        'EXEC_SPECIALIZED_COMPOUND_CONTAINING_COMMON':'Specialized compound containing non-specialized testcases',
-                        'EXEC_COMMON_COMPOUND_CONTAINING_SPECIALIZED':'Non-specialized compound containing specialized testcases',
-                        'EXEC_HIDING_EXPECTED_RESULTS':'Hiding expected results',
-                        'INVALID_TEST_CASE':'Invalid Test Case'
-                       }
+        convertDict = { 'EXEC_SUCCESS_PASS':['Testcase passed','passed'],
+                        'EXEC_SUCCESS_FAIL':['Testcase failed','failed'],
+                        'EXEC_SUCCESS_NONE':['No expected results','run'],
+                        'EXEC_EXECUTION_FAILED':['Testcase failed to run to completion (possible testcase timeout)','failed'],
+                        'EXEC_ABORTED':['User aborted testcase','cancelled'],
+                        'EXEC_TIMEOUT_EXCEEDED':['Testcase timeout','failed'],
+                        'EXEC_VXWORKS_LOAD_ERROR':['VxWorks load error','notrun'],
+                        'EXEC_USER_CODE_COMPILE_FAILED':['User code failed to compile','notrun'],
+                        'EXEC_COMPOUND_ONLY':['Compound only test case','notrun'],
+                        'EXEC_STRICT_IMPORT_FAILED':['Strict Testcase Import Failure','failed'],
+                        'EXEC_MACRO_NOT_FOUND':['Macro not found','notrun'],
+                        'EXEC_SYMBOL_OR_MACRO_NOT_FOUND':['Symbol or macro not found','notrun'],
+                        'EXEC_SYMBOL_OR_MACRO_TYPE_MISMATCH':['Symbol or macro type mismatch','notrun'],
+                        'EXEC_MAX_VARY_EXCEEDED':['Maximum varied parameters exceeded','notrun'],
+                        'EXEC_COMPOUND_WITH_NO_SLOTS':['Compound with no slot','notrun'],
+                        'EXEC_COMPOUND_WITH_ZERO_ITERATIONS':['Compound with zero slot','notrun'],
+                        'EXEC_STRING_LENGTH_EXCEEDED':['Maximum string length exceeded','notrun'],
+                        'EXEC_FILE_COUNT_EXCEEDED':['Maximum file count exceeded','notrun'],
+                        'EXEC_EMPTY_TESTCASE':['Empty testcase','notrun'],
+                        'EXEC_NO_EXPECTED_RETURN':['No expected return value','failed'],
+                        'EXEC_NO_EXPECTED_VALUES':['No expected values','failed'],
+                        'EXEC_CSV_MAP':['CSV Map','notrun'],
+                        'EXEC_DRIVER_DATA_COMPILE_FAILED':['Driver data failed to compile','notrun'],
+                        'EXEC_RECURSIVE_COMPOUND':['Recursive Compound Test','failed'],
+                        'EXEC_SPECIALIZED_COMPOUND_CONTAINING_COMMON':['Specialized compound containing non-specialized testcases','failed'],
+                        'EXEC_COMMON_COMPOUND_CONTAINING_SPECIALIZED':['Non-specialized compound containing specialized testcases','failed'],
+                        'EXEC_HIDING_EXPECTED_RESULTS':['Hiding expected results','run'],
+                        'INVALID_TEST_CASE':['Invalid Test Case','failed']
+        }
+
         try:
             s = convertDict[str(status)]
         except:
             s = convertDict[status]
         return s 
+        
     def has_any_coverage(self,unit_or_func):
         if unit_or_func.coverdb.has_covered_function_calls or \
            unit_or_func.coverdb.has_covered_functions      or \
@@ -743,39 +745,6 @@ class GenerateXml(BaseGenerateXml):
         
         self.fh.write(data.encode(self.encFmt, "replace"))
 
-    def get_xml_string(self, fpath = None):
-
-        if False: #fpath:
-            testcaseStringExtraStatus="""
-        <testcase name="%s" classname="%s" time="%s" file="%s" line="%s">
-            %s
-            <system-out>
-%s
-            </system-out>
-        </testcase>
-"""
-
-            testcaseString ="""
-        <testcase name="%s" classname="%s" time="%s" file="%s" line="%s">
-            %s
-        </testcase>
-"""
-
-        else:
-            testcaseStringExtraStatus="""
-        <testcase name="%s" classname="%s" time="%s" file="%s" line="%s">
-            %s
-            <system-out>
-%s
-            </system-out>
-        </testcase>
-"""
-            testcaseString ="""
-        <testcase name="%s" classname="%s" time="%s" %s %s>
-            %s
-        </testcase>
-"""
-        return testcaseString, testcaseStringExtraStatus
 #
 # GenerateXml - write a testcase to the jUnit XML file
 #
@@ -784,6 +753,14 @@ class GenerateXml(BaseGenerateXml):
         fpath = ""
         startLine = ""
         unitName = ""
+
+        unitName = unit_name
+
+        if self.noResults:
+            return
+
+        if self.report_failed_only and not self.testcase_failed(tc):
+            return
 
         if unit:
             try:
@@ -814,14 +791,6 @@ class GenerateXml(BaseGenerateXml):
                 startLine = "0"
 
             unitName = unit.name
-
-        if self.noResults:
-            return
-
-        failure_message = ""
-
-        if self.report_failed_only and not self.testcase_failed(tc):
-            return
 
         isSystemTest = False
         
@@ -864,22 +833,34 @@ class GenerateXml(BaseGenerateXml):
         envName = escape(self.env, quote=False).replace(".","")
 
         classname = compiler + "." + testsuite + "." + envName
+        extra_message = ""
+        status = ""
+        control_flow_fail = False
+        exception_fail = False
+        signal_fail = False
 
         if isSystemTest:
+            if fpath == "":
+                fpath = tc_name
+                
             tc_name_full =  classname + "." + tc_name
             exp_total = tc.total
             exp_pass = tc.passed
-            result = "  System Test Build Status: " + tc.build_status + ". \n   System Test: " + tc.name + " \n   Execution Status: "
+            extra_message = "System Test Build Status: " + tc.build_status + ". System Test: " + tc.name + ". "
             if tc.run_needed and tc.type == 2: #SystemTestType.MANUAL:
-                result += "Manual system tests can't be run in Jenkins"
+                status = "notrun"
+                extra_message += "Manual system tests can't be run in CI tools"
                 tc.passed = 1
             elif tc.run_needed:
-                result += "Needs to be executed"
+                status = "notrun"
+                extra_message += "Needs to be executed"
                 tc.passed = 1
             elif tc.passed > 0 and tc.passed == tc.total:
-                result += "Passed"
+                status = "passed"
+                extra_message += "Passed"
             else:
-                result += "Failed {} / {} ".format(tc.passed, tc.total)
+                status = "failed"
+                extra_message += "Failed {} / {} ".format(tc.passed, tc.total)
                 tc.passed = 0
 
         else:
@@ -887,67 +868,79 @@ class GenerateXml(BaseGenerateXml):
             summary = tc.history.summary
             exp_total = summary.expected_total
             exp_pass = exp_total - summary.expected_fail
-            if self.api.environment.get_option("VCAST_OLD_STYLE_MANAGEMENT_REPORT"):
-                exp_pass += summary.control_flow_total - summary.control_flow_fail
-                exp_total += summary.control_flow_total + summary.signals + summary.unexpected_exceptions
-
-#            result = self.__get_testcase_execution_results(
-#                tc,
-#                classname,
-#                tc_name_full)  
-                
-            result = ""
+            
+            if summary.control_flow_fail > 0:
+                control_flow_fail = True
+            
+            if summary.unexpected_exceptions > 0:
+                exception_fail = True
+            
+            if summary.signals > 0:
+                signal_fail = True
+            
+            exp_pass += summary.control_flow_total - summary.control_flow_fail
+            exp_total += summary.control_flow_total + summary.signals + summary.unexpected_exceptions
 
             if tc.testcase_status == "TCR_STRICT_IMPORT_FAILED":
-                result += "\nStrict Test Import Failure."
-
+                status = "failed"
+                extra_message = "Strict Test Import Failure."
             # Failure takes priority
-            if tc.status != "TC_EXECUTION_NONE":
-                failure_message = self.convertExecStatus(tc.execution_status)
+            elif tc.status != "TC_EXECUTION_NONE":
+                extra_message, status = self.convertExecStatus(tc.execution_status)
             else:
-                failure_message = "Test Not Executed"
+                status = "notrun"
+                extra_message = "Test was not executed"
+                
+        extra_message = escape(extra_message, quote=False)
+        extra_message = extra_message.replace("\"","")
+        extra_message = extra_message.replace("\n","&#xA;")
+        extra_message = extra_message.replace("\r","")
 
-        msg = ""
-        status = ""
         if tc.passed == None:
-            extraStatus = "\n            <skipped/>\n"
-            status = "Testcase may have been skipped by VectorCAST Change Based Testing.  Last execution data shown.\n\nFAIL"
-            msg = "{} {} / {}  \n\nExecution Report:\n {}".format(status, exp_pass, exp_total, result)
+            status = "skipped"
+            extraStatus = "<skipped/>"
 
         elif not tc.passed:
-            if tcSkipped:
-                status = "Testcase may have been skipped by VectorCAST Change Based Testing.  Last execution data shown.\n\nFAIL"
-            else:
-                status = "FAIL"
-            extraStatus = "\n            <failure type=\"failure\" message=\"" + failure_message + "\"/>\n"
+            whyFail = ""
+            expectedResultsFailure = ""
+            
+            if exception_fail:
+                whyFail += "Unexpected exception failure. "
+                
+            if signal_fail:
+                whyFail += "Signal failure. "
+                
+            if control_flow_fail:
+                whyFail += "Control flow failure. "
+                expectedResultsFailure = "Control flow values" 
+                
+            if tc.history.summary.expected_total:
+                whyFail += "Expected values failure. "
+                if len(expectedResultsFailure) > 0:
+                    expectedResultsFailure += " and "
+                expectedResultsFailure += "Expected values totals"
 
-            msg = "{} {} / {}  \n\nExecution Report:\n {}".format(status, exp_pass, exp_total, result)
+            if tcSkipped:
+                status = "skipped"
+                extraStatus = "<failure type=\"failure\" message=\"{}. {}{}: {}/{}\"/>".format(extra_message, whyFail, expectedResultsFailure, exp_pass, exp_total)
+            else:
+                extraStatus = "<failure type=\"failure\" message=\"{}. {}{}: {}/{}\"/>".format(extra_message, whyFail, expectedResultsFailure, exp_pass, exp_total)
+
         elif tcSkipped:
-            extraStatus = "\n            <skipped/>\n"
-            status = "Skipped by VectorCAST Change Based Testing.  Last execution data shown.\n\nPASS"
-            msg = "{} {} / {}  \n\nExecution Report:\n {}".format(status, exp_pass, exp_total, result)
+            extraStatus = "<skipped/>"
         else:
-            status = "PASS"
             extraStatus = ""
 
-        testcaseString, testcaseStringExtraStatus = self.get_xml_string(fpath)
 
-        if unitName == "":
-            unitName = classname
-
-        if status != "":
-            msg = "{} {} / {}  \n\nExecution Report:\n {}".format(status, exp_pass, exp_total, result)
-            msg = escape(msg, quote=False)
-            msg = msg.replace("\"","")
-            msg = msg.replace("\n","&#xA;")
-            msg = msg.replace("\r","")
-
-            testcaseString = testcaseStringExtraStatus
-            data = testcaseString % (tc_name_full, unitName, deltaTimeStr, fpath, startLine, extraStatus, msg)
-            self.fh.write(data.encode(self.encFmt, "replace"))
+        testcaseString ='        <testcase name="%s" classname="%s" time="%s" file="%s" status="%s"%s'
+        if extraStatus != "":
+            extraXmlTag = ">\n            " + extraStatus + "\n        </testcase>\n"
         else:
-            data = testcaseString % (tc_name_full, classname, deltaTimeStr, extraStatus, msg) + "\n"     
-            self.fh.write(data.encode(self.encFmt, "replace"))   
+            extraXmlTag = "/>\n" 
+            
+        data = testcaseString % (tc_name_full, classname, deltaTimeStr, fpath, status, extraXmlTag)  
+
+        self.fh.write(data.encode(self.encFmt, "replace"))   
             
 #
 # Internal - no support for skipped test cases yet
