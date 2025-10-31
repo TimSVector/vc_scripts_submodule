@@ -238,6 +238,13 @@ class VectorCASTExecute(object):
         self.cleanup(".", self.mpName + "_metrics_report.html")
         self.cleanup(".", "*.log")
         
+        tmp_xml_dir = self.xml_data_dir
+        self.xml_data_dir = ""
+        self.cleanup("coverage")
+        self.cleanup("reports")
+        self.cleanup("test-results")
+        self.xml_data_dir = tmp_xml_dir
+        
     def cleanup(self, dirName, fname = ""): 
     
         if fname == "":
@@ -395,6 +402,7 @@ class VectorCASTExecute(object):
             print("\nProcessing {} and sending to BitBucket: ".format(fname))
             
             send_cobertura_to_bitbucket.run(
+                self.FullMP, 
                 filename = fname,
                 minimum_passing_coverage = self.minimum_passing_coverage, 
                 send_all_coverage = self.send_all_coverage,

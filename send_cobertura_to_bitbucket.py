@@ -5,12 +5,23 @@ import os, sys
 import json
 
 from vcast_utils import getVectorCASTEncoding
-
+from generate_metrics_md import generate_metrics_md
 from pprint import pprint
+
+encFmt = getVectorCASTEncoding()
+
 
 PASS = u"\u2705"   
 FAIL = u"\u274C"   
 PARTIAL = u"\U0001F7E1"
+
+severityArray = ['LOW', 'MEDIUM', 'HIGH', 'CRITICAL']
+
+LOW = 0
+MEDIUM = 1
+HIGH = 2
+CRITICAL = 3
+
 
 # Parse Cobertura XML
 def parse_cobertura(xml_path, send_all_coverage):
@@ -28,58 +39,66 @@ def parse_cobertura(xml_path, send_all_coverage):
             mcdcpair_coverage = line.attrib.get('mcdcpair-coverage', '')
 
             summary = ""
-            publishAnnotation = True #send_all_coverage
+            severityCount = 0
 
             if hits == 0:
-                summary = FAIL + " No coverage on line."
-                publishAnnotation = True
+                summary = "|{}No coverage".format(FAIL)
+                severityCount = CRITICAL
                 
             else:
+                summary = "|ST{}".format(FAIL)
                 summary = PASS + " ST" 
+                severityCount = LOW
                 if branch == 'true':
                     if condition_coverage.startswith("100.0%"):
-                        summary += " | {} BR: {}".format (PASS,condition_coverage)
+                        #summary += " | {} BR: {}".format (PASS,condition_coverage)
+                        summary += "|BR{}".format(PASS)
+                        severityCount -= 1
                     elif condition_coverage.startswith("0.0%"):
-                        summary += " | {} BR: {}".format (FAIL,condition_coverage)
-                        publishAnnotation = True
+                        #summary += " | {} BR: {}".format (FAIL,condition_coverage)
+                        summary += "|BR{}".format(FAIL)
+                        severityCount += 1
                     else:
-                        summary += " | {} BR: {}".format (PARTIAL,condition_coverage)
-                        publishAnnotation = True
+                        #summary += " | {} BR: {}".format (PARTIAL,condition_coverage)
+                        summary += "|BR{}".format(PARTIAL)
+                        severityCount += 1
 
                 if functioncall_coverage.startswith("100.0%"):
-                    summary += " | {} FC".format (PASS)
+                    #summary += " | {} FC".format (PASS)
+                    summary += " |FCC{}".format (PASS)
+                    severityCount -= 1
                 elif functioncall_coverage != '':
-                    summary += " | {} FC".format (FAIL)
-                    publishAnnotation = True
-
+                    #summary += " | {} FC".format (FAIL)
+                    summary += " |FCC{}".format (FAIL)
+                    severityCount += 1
+                    
                 if mcdcpair_coverage.startswith("100.0%"):
-                    summary += " | {} MCDC: {}".format (PASS, mcdcpair_coverage)
+                    #summary += " | {} MCDC: {}".format (PASS, mcdcpair_coverage)
+                    summary += " |MCDC{}".format (PASS)
+                    severityCount -= 1
                 elif mcdcpair_coverage.startswith("0.0%"):
-                    summary += " | {} MCDC: {}".format (FAIL, mcdcpair_coverage)
-                    publishAnnotation = True
+                    #summary += " | {} MCDC: {}".format (FAIL, mcdcpair_coverage)
+                    summary += " |MCDC{}".format (FAIL)
+                    severityCount += 1
                 elif mcdcpair_coverage != '':
-                    summary += " | {} MCDC: {}".format (PARTIAL, mcdcpair_coverage)
-                    publishAnnotation = True
-
-            if True: #publishAnnotation:
-                # annotations.append({
-                    # "path": file_path,
-                    # "line": num,
-                    # "external_id": "{}#{}".format(file_path,num),
-                    # 'message' : summary
-                    # }
-                # )
-                
-                annotations.append({
-                    "title": "Coverage",
-                    "annotation_type": "COVERAGE",
-                    "summary": summary,
-                    "severity": "LOW",
-                    "path": file_path,
-                    "line": num,
-                    "external_id": "{}#{}".format(file_path,num)
-                    }
-                )
+                    #summary += " | {} MCDC: {}".format (PARTIAL, mcdcpair_coverage)
+                    summary += " |MCDC{}".format (PARTIAL)
+                    severityCount += 1
+                    
+            if severityCount > CRITICAL: severityCount = CRITICAL
+            if severityCount < LOW: severityCount = LOW
+            
+            annotations.append({
+                "title": "Coverage",
+                "annotation_type": "COVERAGE",
+                "summary": summary,
+                "severity": severityArray[severityCount],
+                "path": file_path,
+                "line": num,
+                "external_id": "{}#{}".format(file_path,num)
+                }
+            )
+            
     return annotations
 
 def get_summary_string(type_str, rate):
@@ -152,7 +171,9 @@ def create_code_coverage_report_in_bitbucket(filename, workspace, repo_slug, com
         "details": "VectorCAST Code Coverage Summary.",
         "report_type": "COVERAGE",
         "reporter": version,
-        "data": data
+        "data": data,
+        "logo_url" : "https://raw.githubusercontent.com/jenkinsci/vectorcast-execution-plugin/master/src/main/webapp/icons/vector_favicon.png"
+
     }
     
     if verbose:
@@ -167,10 +188,10 @@ def create_code_coverage_report_in_bitbucket(filename, workspace, repo_slug, com
     )
 
     if resp.status_code == 200:
-        print("Reported Created")
+        print("Coverage Reported Created")
     else:
-        print("Reported Creation - FAILED")
-        print("Report creation status:", resp.status_code)
+        print("Coverage Reported Creation - FAILED")
+        print("Coverage Report creation status:", resp.status_code)
         print("Response:", resp.text)
 
 
@@ -200,12 +221,134 @@ def send_code_coverage_annoations(annotations, workspace, repo_slug, commit_hash
         )
         
         if resp.status_code != 200 or verbose:
-            print("Batch {i//100+1} response: {} {}".format(resp.status_code, resp.text))
+            print("Batch {} response: {} {}".format(i//100+1,resp.status_code, resp.text))
+
+    print("Complete")
+    
+# Send annotations in batches of 100
+def send_metrics_annoations(annotationData, workspace, repo_slug, commit_hash, email, token, verbose):
+
+    print("Sending metrics annotations")
+
+    # CONFIGURATION
+    report_id = "metrics-report"
+
+    url = "https://api.bitbucket.org/2.0/repositories/{}/{}/commit/{}/reports/{}/annotations".format(workspace, repo_slug, commit_hash, report_id)
+
+    headers = {"Accept": "application/json", "Content-Type": "application/json"},
+
+    annotations = []
+    
+    for fname, summary, serverity  in annotationData:
+        annotations.append({
+            "title": "Metrics Report",
+            "annotation_type": "COVERAGE",
+            "summary": summary,
+            "severity": serverity,
+            "path": fname,
+            "external_id": "{}#{}".format(fname,"FILE_METRIC"),
+            "line" : 0
+            }
+        )
+
+    for i in range(0, len(annotations), 100):
+        batch = annotations[i:i+100]     
+                                          
+        if verbose:  
+            print(json.dumps(annotations[1:10]))
+
+        resp = requests.post(
+            url, 
+            auth=(email, token), 
+            json=batch, 
+            headers= {"Accept": "application/json", "Content-Type": "application/json"}
+        )
+        
+        if resp.status_code != 200 or verbose:
+            print("Batch {} response: {} {}".format(i//100+1,resp.status_code, resp.text))
 
     print("Complete")
 
+def send_metrics_md_report_in_bitbucket(
+    summary, 
+    annotationData, 
+    workspace, 
+    repo_slug, 
+    commit_hash, 
+    email, 
+    token, 
+    link, 
+    verbose):
+    
+    print("Sending metrics data in Markdown format for commit {}".format(commit_hash))
 
-def run(filename, minimum_passing_coverage, send_all_coverage, verbose):
+    # CONFIGURATION
+    report_id = "metrics-report"
+
+    url = "https://api.bitbucket.org/2.0/repositories/{}/{}/commit/{}/reports/{}".format(workspace, repo_slug, commit_hash, report_id)
+
+    headers = {"Accept": "application/json", "Content-Type": "application/json"}
+    
+    html_artifact_url = (
+        "https://bitbucket.org/tim-schneider-vector/"
+        "pointofsales-v2/addons/bitbucket-build/111/"
+        "artifacts/reports/html/PointOfSales_Manage_aggregate_report.html"
+    )
+
+    summary_with_link = (
+        summary + "\n\n---\n\n"
+        "[View full HTML report →]({})".format(html_artifact_url)
+    )
+
+    report_payload = {
+        "title": "Metrics Report",
+        "details": summary_with_link,
+        "report_type": "TEST",
+        "reporter": "VectorCAST",
+        "logo_url": "https://raw.githubusercontent.com/jenkinsci/vectorcast-execution-plugin/master/src/main/webapp/icons/vector_favicon.png",
+        "result": "PASSED"
+    }
+
+    report_payload = {
+        "title": "Metrics Report",
+        "details": summary,
+        "report_type": "TEST",
+        "reporter": "VectorCAST",
+        "logo_url" : "https://raw.githubusercontent.com/jenkinsci/vectorcast-execution-plugin/master/src/main/webapp/icons/vector_favicon.png",
+        "link" : html_artifact_url
+    }
+    
+    sendData = json.dumps(report_payload, ensure_ascii=False).encode(encFmt, "replace")
+    
+    print(json.dumps(report_payload, indent = 2))
+    
+    if verbose:
+        print("report_payload")
+        print(json.dumps(report_payload, ensure_ascii=False, indent=2))
+
+    headers = {
+        "Accept": "application/json", 
+        "Content-Type": "application/json; charset=" + encFmt
+    }
+
+    resp = requests.put(
+        url,
+        auth=(email, token),
+        data=sendData,
+        headers=headers,
+        timeout=30
+    )
+
+    if resp.status_code == 200:
+        print("Metrics Reported Created")
+    else:
+        print("Metrics Reported Creation - FAILED")
+        print("Metrics Report creation status:", resp.status_code)
+        print("Response:", resp.text)
+
+    send_metrics_annoations(annotationData, workspace, repo_slug, commit_hash, email, token, verbose)
+
+def run(mpName, filename, minimum_passing_coverage, send_all_coverage, verbose):
 
     workspace   = os.environ['BITBUCKET_WORKSPACE']
     repo_slug   = os.environ['BITBUCKET_REPO_SLUG']
@@ -213,32 +356,43 @@ def run(filename, minimum_passing_coverage, send_all_coverage, verbose):
     bitbucket_api_token = os.environ['BITBUCKET_API_TOKEN']
     bitbucket_email = os.environ['BITBUCKET_EMAIL']
 
-    create_code_coverage_report_in_bitbucket(
-        filename, 
-        workspace, 
-        repo_slug, 
-        commit_hash, 
-        bitbucket_email, 
-        bitbucket_api_token, 
-        minimum_passing_coverage,
-        verbose
-    )
+    # create_code_coverage_report_in_bitbucket(
+        # filename, 
+        # workspace, 
+        # repo_slug, 
+        # commit_hash, 
+        # bitbucket_email, 
+        # bitbucket_api_token, 
+        # minimum_passing_coverage,
+        # verbose
+    # )
     
     annotations = parse_cobertura(filename, send_all_coverage)
     
-    encFmt = getVectorCASTEncoding()
     
-
     with open("coverage_results.json", "wb") as fd:
         fd.write(json.dumps(annotations, indent=2).encode(encFmt,'replace'))
     
-    send_code_coverage_annoations(
-        annotations, 
+    # send_code_coverage_annoations(
+        # annotations, 
+        # workspace, 
+        # repo_slug, 
+        # commit_hash, 
+        # bitbucket_email, 
+        # bitbucket_api_token, 
+        # verbose
+    # )
+    
+    summary, annotation_data, link = generate_metrics_md(mpName)
+    
+    send_metrics_md_report_in_bitbucket(
+        summary, annotation_data, 
         workspace, 
         repo_slug, 
         commit_hash, 
         bitbucket_email, 
         bitbucket_api_token, 
+        link,
         verbose
     )
     
@@ -277,5 +431,5 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
 
-    run(args.filename, args.minimum_passing_coverage, args.send_all_coverage, args.verbose)
+    run("", args.filename, args.minimum_passing_coverage, args.send_all_coverage, args.verbose)
 
