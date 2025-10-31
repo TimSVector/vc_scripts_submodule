@@ -289,33 +289,13 @@ def send_metrics_md_report_in_bitbucket(
 
     headers = {"Accept": "application/json", "Content-Type": "application/json"}
     
-    html_artifact_url = (
-        "https://bitbucket.org/tim-schneider-vector/"
-        "pointofsales-v2/addons/bitbucket-build/111/"
-        "artifacts/reports/html/PointOfSales_Manage_aggregate_report.html"
-    )
-
-    summary_with_link = (
-        summary + "\n\n---\n\n"
-        "[View full HTML report →]({})".format(html_artifact_url)
-    )
-
-    report_payload = {
-        "title": "Metrics Report",
-        "details": summary_with_link,
-        "report_type": "TEST",
-        "reporter": "VectorCAST",
-        "logo_url": "https://raw.githubusercontent.com/jenkinsci/vectorcast-execution-plugin/master/src/main/webapp/icons/vector_favicon.png",
-        "result": "PASSED"
-    }
-
     report_payload = {
         "title": "Metrics Report",
         "details": summary,
         "report_type": "TEST",
         "reporter": "VectorCAST",
         "logo_url" : "https://raw.githubusercontent.com/jenkinsci/vectorcast-execution-plugin/master/src/main/webapp/icons/vector_favicon.png",
-        "link" : html_artifact_url
+        "link" : link
     }
     
     sendData = json.dumps(report_payload, ensure_ascii=False).encode(encFmt, "replace")
