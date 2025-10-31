@@ -164,9 +164,7 @@ def updateTextMetricsReport(mpReportName):
     # --- Append link to full HTML report ---
     html_artifact_url = "https://bitbucket.org/{}/{}/addons/bitbucket-build/{}/artifacts/reports/html/{}".format(workspace, repo_slug, build_num, artifactName)
 
-    link = {"text": "Aggregate Coverage Report", "href": html_artifact_url}
-
-    return summary, rows, link
+    return summary, rows, html_artifact_url
 
 def generate_metrics_md(mpName):
     
