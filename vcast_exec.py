@@ -414,23 +414,30 @@ class VectorCASTExecute(object):
                 print("$BITBUCKET_CLONE_DIR not set")
                 basePath = "."
 
-            for html_dir in [basePath, self.html_base_dir, "rebuild_reports"]:
-                for html in glob.glob(os.path.join(html_dir, "*.html")) \
-                          + glob.glob(os.path.join(html_dir, "*.ccs"))  \
-                          + glob.glob(os.path.join(html_dir, "*.png")):
-                    dest = os.path.join("reports/html",html)
-                    dest_dir = os.path.dirname(dest)
-                    if not os.path.isdir(dest_dir):
-                        os.makedirs(os.path.dirname(dest))
-
+            html_dirs = [basePath, "html_reports", "rebuild_reports"]
+            
+            for html_dir in html_dirs:
+                for html in (
+                    glob.glob(os.path.join(html_dir, "*.html")) +
+                    glob.glob(os.path.join(html_dir, "*.css")) +
+                    glob.glob(os.path.join(html_dir, "*.png"))
+                ):
+                    # compute relative path to repository root
+                    rel_path = os.path.relpath(html, start=basePath)
+            
+                    # replicate that structure under reports/html/
+                    dest = os.path.join("reports/html", rel_path)
+            
+                    os.makedirs(os.path.dirname(dest), exist_ok=True)
+            
                     try:
-                        shutil.copyfile(html, dest)
-                        if True: #self.verbose: 
-                            print("Copying {} --> {}".format(html,dest))
+                        if os.path.abspath(html) != os.path.abspath(dest):
+                            shutil.copy2(html, dest)
+                            if verbose: print("Saving file here: {}".format(dest))
                     except Exception as e:
-                        print("Error copying {} --> {}".format(html,dest))
-                        print(e)
-
+                        print("Error copying {} --> {}\n{}".format(html, dest, e))
+ 
+ 
     def runSonarQubeMetrics(self):
         if not checkVectorCASTVersion(21):
             print("Cannot create SonarQube metrics. Please upgrade VectorCAST")
