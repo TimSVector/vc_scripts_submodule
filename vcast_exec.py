@@ -414,7 +414,7 @@ class VectorCASTExecute(object):
                 print("$BITBUCKET_CLONE_DIR not set")
                 basePath = "."
 
-            html_dirs = [basePath, "html_reports", "rebuild_reports"]
+            html_dirs = [basePath, self.html_base_dir, "rebuild_reports"]
             
             for html_dir in html_dirs:
                 for html in (
@@ -433,7 +433,7 @@ class VectorCASTExecute(object):
                     try:
                         if os.path.abspath(html) != os.path.abspath(dest):
                             shutil.copy2(html, dest)
-                            if verbose: print("Saving file here: {}".format(dest))
+                            if self.verbose: print("Saving file here: {}".format(dest))
                     except Exception as e:
                         print("Error copying {} --> {}\n{}".format(html, dest, e))
  
