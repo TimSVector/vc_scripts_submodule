@@ -22,7 +22,17 @@
 # THE SOFTWARE.
 #
 
+from vcast_utils import checkVectorCASTVersion
+
 import sys, io, re, os
+
+if not checkVectorCASTVersion(20, quiet = False):
+    if __name__ != "__main__":
+        raise ImportError("Cannot generate metrics with DataApi. Please upgrade VectorCAST")
+    else:
+        print("Cannot generate metrics with DataApi. Please upgrade VectorCAST")
+        sys.exit(0)
+
 from vector.apps.ReportBuilder.custom_report import CustomReport
 from vector.apps.DataAPI.vcproject_api import VCProjectApi
 

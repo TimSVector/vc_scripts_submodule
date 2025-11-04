@@ -23,12 +23,17 @@
 #
 
 from lxml import etree
+
+from vcast_utils import dump, checkVectorCASTVersion, getVectorCASTEncoding
+
 try:
     from vector.apps.DataAPI.vcproject_api import VCProjectApi 
     from vector.apps.DataAPI.vcproject_models import VCProject
 except:
     pass
+
 from vector.apps.DataAPI.cover_api import CoverApi
+
 try:
     from vector.apps.DataAPI.unit_test_api import UnitTestApi
 except:
@@ -43,8 +48,6 @@ except:
     pass
 
 fileList = []
-
-from vcast_utils import dump, checkVectorCASTVersion, getVectorCASTEncoding
 
 encFmt = getVectorCASTEncoding()
 
@@ -768,9 +771,8 @@ def generateCoverageResults(inFile, azure = False, xml_data_dir = "xml_data", ve
 if __name__ == '__main__':
     
     if not checkVectorCASTVersion(21):
-        print("Cannot create Cobertura metrics. Please upgrade VectorCAST")
-        sys.modules[__name__] = None
-
+        print ("Cannot create Cobertura metrics. Please upgrade VectorCAST")
+        sys.exit(0)
             
     parser = argparse.ArgumentParser()
     parser.add_argument('ManageProject',     help='Manager Project Name')

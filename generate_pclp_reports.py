@@ -241,7 +241,8 @@ def generate_source():
         print("XXX Cannot generate Source Code section of the PC-Line Report report")
         print("XXX The Summary and File Detail sections are present")
         print("XXX If you'd like to see the Source Code section of the PC-Line Report, please upgrade VectorCAST")
-        sys.modules[__name__] = None
+        sys.exit(0)
+
 
     fullMpName = globalState.fullMpName
     msgs = globalState.msgs

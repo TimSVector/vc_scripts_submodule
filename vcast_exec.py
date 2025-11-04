@@ -120,7 +120,6 @@ class VectorCASTExecute(object):
         self.junit = args.junit
         self.cobertura = args.cobertura
         self.cobertura_extended = args.cobertura_extended
-        self.send_to_bitbucket = args.send_to_bitbucket
         self.metrics = args.metrics
         self.fullstatus = args.fullstatus
         self.aggregate = args.aggregate
@@ -129,7 +128,6 @@ class VectorCASTExecute(object):
 
         self.html_base_dir = args.html_base_dir
         self.use_cte = args.use_cte
-        self.send_all_coverage = args.send_all_coverage
         self.minimum_passing_coverage = args.minimum_passing_coverage
         self.noIndex = args.noindex
 
@@ -349,95 +347,6 @@ class VectorCASTExecute(object):
             cobertura.generateCoverageResults(self.FullMP, self.azure, self.xml_data_dir, verbose = self.verbose,
                 extended=self.cobertura_extended, source_root = self.source_root)
 
-    def sendToBitBucket(self):
-        if not checkVectorCASTVersion(21):
-            print("Cannot create Cobertura metrics to send to BitBucket. Please upgrade VectorCAST")
-        else:
-            import cobertura
-            import send_cobertura_to_bitbucket
-
-            self.cleanup("coverage")
-            self.cleanup("test-results")
-            self.cleanup("reports")
-
-            if not os.path.isdir("coverage"):
-                os.makedirs("coverage")
-            if not os.path.isdir("test-results"):
-                os.makedirs("test-results")
-            if not os.path.isdir("reports/html"):
-                os.makedirs("reports/html")
-
-            print("Generating and sending extended cobertura metrics to BitBucket")
-            cobertura.generateCoverageResults(
-                self.FullMP,
-                azure = False,
-                xml_data_dir = "coverage",
-                verbose = self.verbose,
-                extended=True,
-                source_root = self.source_root)
-
-            print("Creating JUnit metrics to be read by BitBucket")
-            failed_count, passed_count = generate_results.buildReports(
-                    FullManageProjectName = self.FullMP,
-                    level = None,
-                    envName = None,
-                    generate_individual_reports = False,
-                    timing = False,
-                    cbtDict = None,
-                    use_archive_extract = False,
-                    report_only_failures = False,
-                    no_full_report = False,
-                    use_ci = self.ci,
-                    xml_data_dir = "test-results",
-                    useStartLine = False)
-
-            name  = os.path.splitext(os.path.basename(self.FullMP))[0] + ".xml"
-            fname = os.path.join("coverage","cobertura","coverage_results_" + name)
-
-            if os.path.exists(fname):
-                new_name = os.path.join("coverage","cobertura","cobertura.xml")
-                os.rename(fname, new_name)
-                fname = new_name
-
-            print("\nProcessing {} and sending to BitBucket: ".format(fname))
-
-            send_cobertura_to_bitbucket.run(
-                self.FullMP,
-                filename = fname,
-                minimum_passing_coverage = self.minimum_passing_coverage,
-                send_all_coverage = self.send_all_coverage,
-                verbose = self.verbose)
-
-            try:
-                basePath = os.environ['BITBUCKET_CLONE_DIR']
-            except:
-                print("$BITBUCKET_CLONE_DIR not set")
-                basePath = "."
-
-            html_dirs = [basePath, self.html_base_dir, "rebuild_reports"]
-            
-            for html_dir in html_dirs:
-                for html in (
-                    glob.glob(os.path.join(html_dir, "*.html")) +
-                    glob.glob(os.path.join(html_dir, "*.css")) +
-                    glob.glob(os.path.join(html_dir, "*.png"))
-                ):
-                    # compute relative path to repository root
-                    rel_path = os.path.relpath(html, start=basePath)
-            
-                    # replicate that structure under reports/html/
-                    dest = os.path.join("reports/html", rel_path)
-            
-                    os.makedirs(os.path.dirname(dest), exist_ok=True)
-            
-                    try:
-                        if os.path.abspath(html) != os.path.abspath(dest):
-                            shutil.copy2(html, dest)
-                            if self.verbose: print("Saving file here: {}".format(dest))
-                    except Exception as e:
-                        print("Error copying {} --> {}\n{}".format(html, dest, e))
- 
- 
     def runSonarQubeMetrics(self):
         if not checkVectorCASTVersion(21):
             print("Cannot create SonarQube metrics. Please upgrade VectorCAST")
@@ -620,9 +529,6 @@ if __name__ == '__main__':
     metricsGroup.add_argument("--html_base_dir", help='Set the base directory of the html_reports directory. The default is the workspace directory', default = "html_reports")
     metricsGroup.add_argument('--cobertura', help='Generate coverage results in Cobertura xml format', action="store_true", default = False)
     metricsGroup.add_argument('--cobertura_extended', help='Generate coverage results in extended Cobertura xml format', action="store_true", default = False)
-    metricsGroup.add_argument('--send_to_bitbucket', help='Generate Junit and Extended Cobertura data to send to BitBucket', action="store_true", default = False)
-    metricsGroup.add_argument('--send_all_coverage', help='Send all coverage to BitBucket. Default is partial or not coveraged', action="store_true", default = False)
-    metricsGroup.add_argument('--minimum_passing_coverage', type=float, help="Minimum overall coverage required to pass (default 80 percent)",default=80)
     metricsGroup.add_argument('--lcov', help='Generate coverage results in an LCOV format', action="store_true", default = False)
     metricsGroup.add_argument('--junit', help='Generate test results in Junit xml format', action="store_true", default = False)
     metricsGroup.add_argument('--export_rgw', help='Export RGW data', action="store_true", default = False)
@@ -721,9 +627,6 @@ if __name__ == '__main__':
 
     if args.export_rgw:
         vcExec.exportRgw()
-
-    if args.send_to_bitbucket:
-        vcExec.sendToBitBucket()
 
     if vcExec.useJunitFailCountPct:
         print("--exit_with_failed_count=" + args.exit_with_failed_count + " specified. Fail Percent = " + str(round(vcExec.failed_pct,0)) + "% Return code: " + str(vcExec.failed_count))
