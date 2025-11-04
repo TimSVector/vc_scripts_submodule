@@ -1,6 +1,7 @@
 import requests
 import xml.etree.ElementTree as ET
 
+import shutil
 import os, sys, glob
 import json
 from vcast_utils import checkVectorCASTVersion, getVectorCASTEncoding
