@@ -1,9 +1,9 @@
 import requests
 import xml.etree.ElementTree as ET
 
-import os, sys
+import os, sys, glob
 import json
-from vcast_utils import checkVectorCASTVersion
+from vcast_utils import checkVectorCASTVersion, getVectorCASTEncoding
 
 if not checkVectorCASTVersion(20, quiet = False):
     if __name__ != "__main__":
@@ -350,7 +350,7 @@ def moveFiles(html_base_dir, verbose = False):
                 print("Error copying {} --> {}\n{}".format(html, dest, e))
 
      
-def run(fullMp, minimum_passing_coverage, useCi, html_base_dir, source_root, verbose):
+def run(fullMP, minimum_passing_coverage, useCi, html_base_dir, source_root, verbose):
     
     if not checkVectorCASTVersion(21):
         print("Cannot create Cobertura metrics to send to BitBucket. Please upgrade VectorCAST")
@@ -371,7 +371,7 @@ def run(fullMp, minimum_passing_coverage, useCi, html_base_dir, source_root, ver
 
         print("Generating and sending extended cobertura metrics to BitBucket")
         cobertura.generateCoverageResults(
-            fullMp,
+            fullMP,
             azure = False,
             xml_data_dir = "coverage",
             verbose = verbose,
@@ -380,7 +380,7 @@ def run(fullMp, minimum_passing_coverage, useCi, html_base_dir, source_root, ver
 
         print("Creating JUnit metrics to be read by BitBucket")
         failed_count, passed_count = generate_results.buildReports(
-                FullManageProjectName = fullMp,
+                FullManageProjectName = fullMP,
                 level = None,
                 envName = None,
                 generate_individual_reports = False,
@@ -393,7 +393,7 @@ def run(fullMp, minimum_passing_coverage, useCi, html_base_dir, source_root, ver
                 xml_data_dir = "test-results",
                 useStartLine = False)
 
-        name  = os.path.splitext(os.path.basename(fullMp))[0] + ".xml"
+        name  = os.path.splitext(os.path.basename(fullMP))[0] + ".xml"
         fname = os.path.join("coverage","cobertura","coverage_results_" + name)
 
         if os.path.exists(fname):
@@ -404,7 +404,7 @@ def run(fullMp, minimum_passing_coverage, useCi, html_base_dir, source_root, ver
         print("\nProcessing {} and sending to BitBucket: ".format(fname))
 
         buildAndSendCoverage(
-            fullMp,
+            fullMP,
             filename = fname,
             minimum_passing_coverage = minimum_passing_coverage,
             verbose = verbose
@@ -437,13 +437,6 @@ if __name__ == "__main__":
     )
     
     parser.add_argument(
-        "-v", "--verbose",
-        action="store_true",
-        help="Enable verbose output for debugging or detailed reporting",
-        default = False
-    )
-
-    parser.add_argument(
         "--ci",
         action="store_true",
         help="Use CI licenses",
@@ -471,10 +464,15 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
 
+    if args.ci:
+        useCi = "--ci"
+    else:
+        useCi = ""
+        
     run(
-        mpName = args.vcProject, 
+        fullMP = args.vcProject, 
         minimum_passing_coverage = args.minimum_passing_coverage, 
-        useCi = args.ci,
+        useCi = useCi,
         html_base_dir = args.html_base_dir,
         source_root = args.source_root,
         verbose = args.verbose

@@ -128,7 +128,6 @@ class VectorCASTExecute(object):
 
         self.html_base_dir = args.html_base_dir
         self.use_cte = args.use_cte
-        self.minimum_passing_coverage = args.minimum_passing_coverage
         self.noIndex = args.noindex
 
         if args.exit_with_failed_count == 'not present':

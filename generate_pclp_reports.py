@@ -243,7 +243,6 @@ def generate_source():
         print("XXX If you'd like to see the Source Code section of the PC-Line Report, please upgrade VectorCAST")
         sys.exit(0)
 
-
     fullMpName = globalState.fullMpName
     msgs = globalState.msgs
 

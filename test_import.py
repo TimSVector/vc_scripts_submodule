@@ -63,9 +63,7 @@ try:
     import generate_sonarqube_testresults
     import generate_xml
     import getjobs
-    if checkVectorCASTVersion(21):
-        import incremental_build_report_aggregator
-    
+    import incremental_build_report_aggregator
     import managewait
     import merge_vcr
     import patch_rgw_directory

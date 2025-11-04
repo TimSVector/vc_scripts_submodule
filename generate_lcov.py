@@ -1,7 +1,7 @@
 #
 # The MIT License
 #
-# Copyright 2020 Vector Informatik, GmbH.
+# Copyright 2025 Vector Informatik, GmbH.
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -28,12 +28,14 @@ try:
     from vector.apps.DataAPI.vcproject_models import VCProject
 except:
     pass
+
+from vector.apps.DataAPI.cover_api import CoverApi
+
 try:
     from vector.apps.DataAPI.unit_test_api import UnitTestApi
 except:
     from vector.apps.DataAPI.api import Api as UnitTestApi
 
-from vector.apps.DataAPI.cover_api import CoverApi
 import sys, os
 from collections import defaultdict
 from pprint import pprint
