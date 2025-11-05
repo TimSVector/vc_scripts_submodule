@@ -232,17 +232,17 @@ def printEnvInfoNoDataAPI(ManageProjectName, printData = True, printEnvType = Fa
  
 def printEnvironmentInfo(ManageProjectName, printData = True, printEnvType = False):
     try:
+            
         from vector.apps.DataAPI.vcproject_api import VCProjectApi
-        with VCProjectApi(ManageProjectName) as vcproj:
-            ret_info = printEnvInfoDataAPI(vcproj, printData, printEnvType)
-
+        api = VCProjectApi(ManageProjectName)
+        ret_info = printEnvInfoDataAPI(api, printData, printEnvType)
+        api.close()
         return ret_info
+
     
-    except Exception as e:    
-        print(e)
+    except:    
         return printEnvInfoNoDataAPI(ManageProjectName, printData, printEnvType)
-        
-        
+
 if __name__ == "__main__":
     import argparse
     parser = argparse.ArgumentParser()
