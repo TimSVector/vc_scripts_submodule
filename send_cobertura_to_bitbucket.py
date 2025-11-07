@@ -176,7 +176,7 @@ def get_summary_resuts(xml_path, minimum_passing_coverage, verbose):
     return data, timestamp, version, overall_coverage
     
 # Send annotations in batches of 100
-def send_metrics_annoations(annotationData, workspace, repo_slug, commit_hash, email, token, verbose):
+def send_metrics_annotations(annotationData, workspace, repo_slug, commit_hash, email, token, verbose):
 
     print("Sending metrics annotations")
 
@@ -204,7 +204,7 @@ def send_metrics_annoations(annotationData, workspace, repo_slug, commit_hash, e
     for i in range(0, len(annotations), 100):
         batch = annotations[i:i+100]     
                                           
-        if verbose:  
+        if verbose:
             print(json.dumps(annotations[1:10]))
 
         resp = requests.post(
@@ -214,28 +214,67 @@ def send_metrics_annoations(annotationData, workspace, repo_slug, commit_hash, e
             headers= {"Accept": "application/json", "Content-Type": "application/json"}
         )
         
-        if resp.status_code != 200 or verbose:
+        if resp.status_code != 200 and not verbose:
             print("Batch {} response: {} {}".format(i//100+1,resp.status_code, resp.text))
+            
+        elif resp.status_code != 200 or verbose:
+            print("Batch {} response: {} {}".format(i//100+1,resp.status_code, resp.text))
+            
+        else:
+            print("Batch {} response: {}".format(i//100+1,resp.status_code))
+            
 
     print("Complete")
 
-def send_metrics_md_report_in_bitbucket(
-    summary, 
-    annotationData, 
-    workspace, 
-    repo_slug, 
-    commit_hash, 
-    email, 
-    token, 
-    link, 
-    verbose):
+def saveDataForSending(summary, annotationData, link, verbose):
     
-    print("Sending metrics data in Markdown format for commit {}".format(commit_hash))
+    with open("metrics_summary.bb_txt", "wb") as fd:
+        fd.write(summary.encode(encFmt,'replace'))
+        
+    with open("metrics_annotation_data.bb_txt", "wb") as fd:
+        saveData = json.dumps(annotationData, ensure_ascii=False).encode(encFmt, "replace")
+        fd.write(saveData)
+        
+    with open("metrics_link.bb_txt", "wb") as fd:
+        fd.write(link.encode(encFmt,'replace'))
+        
+def readSavedData(verbose = False):
+    
+    with open("metrics_summary.bb_txt", "rb") as fd:
+        summary = fd.read().decode(encFmt, 'replace')
+        
+    with open("metrics_annotation_data.bb_txt", "rb") as fd:
+        raw = fd.read()
+        rawAsText= raw.decode(encFmt, "replace")
+        annotationData = json.loads(rawAsText)
+
+    with open("metrics_link.bb_txt", "rb") as fd:
+        link = fd.read().decode(encFmt, 'replace')
+        
+    return summary, annotationData, link
+        
+def sendMetricsReport(verbose):
+
+    bitbucket_workspace   = os.environ['BITBUCKET_WORKSPACE']
+    bitbucket_repo_slug   = os.environ['BITBUCKET_REPO_SLUG']
+    bitbucket_commit_hash = os.environ['BITBUCKET_COMMIT']
+    bitbucket_api_token = os.environ['BITBUCKET_API_TOKEN']
+    bitbucket_email = os.environ['BITBUCKET_EMAIL']
+    
+    summary, annotationData, link = readSavedData()
+    report_id = "metrics-report"
+
+    print("Sending metrics data in Markdown format for commit {}".format(bitbucket_commit_hash))
 
     # CONFIGURATION
     report_id = "metrics-report"
 
-    url = "https://api.bitbucket.org/2.0/repositories/{}/{}/commit/{}/reports/{}".format(workspace, repo_slug, commit_hash, report_id)
+    url = "https://api.bitbucket.org/2.0/repositories/{}/{}/commit/{}/reports/{}".format(
+        bitbucket_workspace, 
+        bitbucket_repo_slug, 
+        bitbucket_commit_hash, 
+        report_id
+    )
 
     headers = {"Accept": "application/json", "Content-Type": "application/json"}
     
@@ -249,9 +288,7 @@ def send_metrics_md_report_in_bitbucket(
     }
     
     sendData = json.dumps(report_payload, ensure_ascii=False).encode(encFmt, "replace")
-    
-    print(json.dumps(report_payload, indent = 2))
-    
+        
     if verbose:
         print("report_payload")
         print(json.dumps(report_payload, ensure_ascii=False, indent=2))
@@ -263,47 +300,40 @@ def send_metrics_md_report_in_bitbucket(
 
     resp = requests.put(
         url,
-        auth=(email, token),
+        auth=(bitbucket_email, bitbucket_api_token),
         data=sendData,
         headers=headers,
         timeout=30
     )
 
     if resp.status_code == 200:
-        print("Metrics Reported Created")
+        send_metrics_annotations(
+            annotationData, 
+            bitbucket_workspace, 
+            bitbucket_repo_slug, 
+            bitbucket_commit_hash, 
+            bitbucket_email, 
+            bitbucket_api_token, 
+            verbose
+        )
+                        
     else:
         print("Metrics Reported Creation - FAILED")
         print("Metrics Report creation status:", resp.status_code)
         print("Response:", resp.text)
 
-    send_metrics_annoations(annotationData, workspace, repo_slug, commit_hash, email, token, verbose)
-
-def buildAndSendCoverage(mpName, filename, minimum_passing_coverage, verbose):
-
-    workspace   = os.environ['BITBUCKET_WORKSPACE']
-    repo_slug   = os.environ['BITBUCKET_REPO_SLUG']
-    commit_hash = os.environ['BITBUCKET_COMMIT']
-    bitbucket_api_token = os.environ['BITBUCKET_API_TOKEN']
-    bitbucket_email = os.environ['BITBUCKET_EMAIL']
+    
+def buildCoverageData(mpName, filename, minimum_passing_coverage, verbose):
 
     annotations = parse_cobertura(filename)
     
     with open("coverage_results.json", "wb") as fd:
         fd.write(json.dumps(annotations, indent=2).encode(encFmt,'replace'))
-      
+        
     summary, annotation_data, link = generate_metrics_md(mpName)
-    
-    send_metrics_md_report_in_bitbucket(
-        summary, annotation_data, 
-        workspace, 
-        repo_slug, 
-        commit_hash, 
-        bitbucket_email, 
-        bitbucket_api_token, 
-        link,
-        verbose
-    )
 
+    saveDataForSending(summary, annotation_data, link, verbose)
+      
 def cleanup(dirName, fname = ""):
 
     if fname == "":
@@ -351,7 +381,7 @@ def moveFiles(html_base_dir, verbose = False):
                 print("Error copying {} --> {}\n{}".format(html, dest, e))
 
      
-def run(fullMP, minimum_passing_coverage, useCi, html_base_dir, source_root, verbose):
+def run(fullMP, minimum_passing_coverage, useCi, html_base_dir, source_root, generate_data, send_data, verbose):
     
     if not checkVectorCASTVersion(21):
         print("Cannot create Cobertura metrics to send to BitBucket. Please upgrade VectorCAST")
@@ -370,29 +400,30 @@ def run(fullMP, minimum_passing_coverage, useCi, html_base_dir, source_root, ver
         if not os.path.isdir("reports/html"):
             os.makedirs("reports/html")
 
-        print("Generating and sending extended cobertura metrics to BitBucket")
-        cobertura.generateCoverageResults(
-            fullMP,
-            azure = False,
-            xml_data_dir = "coverage",
-            verbose = verbose,
-            extended=True,
-            source_root = source_root)
+        if generate_data:
+            print("Generating and sending extended cobertura metrics to BitBucket")
+            cobertura.generateCoverageResults(
+                fullMP,
+                azure = False,
+                xml_data_dir = "coverage",
+                verbose = verbose,
+                extended=True,
+                source_root = source_root)
 
-        print("Creating JUnit metrics to be read by BitBucket")
-        failed_count, passed_count = generate_results.buildReports(
-                FullManageProjectName = fullMP,
-                level = None,
-                envName = None,
-                generate_individual_reports = False,
-                timing = False,
-                cbtDict = None,
-                use_archive_extract = False,
-                report_only_failures = False,
-                no_full_report = False,
-                use_ci = useCi,
-                xml_data_dir = "test-results",
-                useStartLine = False)
+            print("Creating JUnit metrics to be read by BitBucket")
+            failed_count, passed_count = generate_results.buildReports(
+                    FullManageProjectName = fullMP,
+                    level = None,
+                    envName = None,
+                    generate_individual_reports = False,
+                    timing = False,
+                    cbtDict = None,
+                    use_archive_extract = False,
+                    report_only_failures = False,
+                    no_full_report = False,
+                    use_ci = useCi,
+                    xml_data_dir = "test-results",
+                    useStartLine = False)
 
         name  = os.path.splitext(os.path.basename(fullMP))[0] + ".xml"
         fname = os.path.join("coverage","cobertura","coverage_results_" + name)
@@ -404,37 +435,54 @@ def run(fullMP, minimum_passing_coverage, useCi, html_base_dir, source_root, ver
 
         print("\nProcessing {} and sending to BitBucket: ".format(fname))
 
-        buildAndSendCoverage(
-            fullMP,
-            filename = fname,
-            minimum_passing_coverage = minimum_passing_coverage,
-            verbose = verbose
-        )
-        
-        moveFiles(
-            html_base_dir = html_base_dir,
-            verbose = verbose
-        )
+        if generate_data:
+            buildCoverageData(
+                fullMP,
+                filename = fname,
+                minimum_passing_coverage = minimum_passing_coverage,
+                verbose = verbose
+            )
+            moveFiles(
+                html_base_dir = html_base_dir,
+                verbose = verbose
+            )
+
+        else:
+            
+            sendMetricsReport(verbose)
+
 
     
 if __name__ == "__main__":
     import argparse
     
     parser = argparse.ArgumentParser(
-        description="Send coverage information to BitBucket."
+        description="Generate/Send coverage information to BitBucket."
     )
     
     parser.add_argument(
         "vcProject",
-        help="Path to the VectorCAST Project",
-        default="cobertura.xml"
+        help="Path to the VectorCAST Project"
     )
 
     parser.add_argument(
         "--minimum_passing_coverage",
         type=float,
-        help="Minimum overall coverage required to pass (default 80 percent)",
+        #help="Minimum overall coverage required to pass (default 80 percent)",
+        help=argparse.SUPPRESS,
         default=80
+    )
+    
+    group = parser.add_mutually_exclusive_group(required=True)
+    group.add_argument(
+        '--generate_data', 
+        action='store_true',
+        help='Generate data file but do not send it'
+    )
+    group.add_argument(
+        '--send_data', 
+        action='store_true',
+        help='Send previously generated data file to Bitbucket'
     )
     
     parser.add_argument(
@@ -447,7 +495,8 @@ if __name__ == "__main__":
     parser.add_argument(
         "-v", "--verbose",
         action="store_true",
-        help="Enable verbose output for debugging or detailed reporting"
+        help="Enable verbose output for debugging or detailed reporting",
+        default=False
     )
     
     
@@ -470,12 +519,20 @@ if __name__ == "__main__":
     else:
         useCi = ""
         
+    if args.generate_data:
+        print("Generating data...")
+    elif args.send_data:
+        print("Sending data...")
+
+        
     run(
         fullMP = args.vcProject, 
         minimum_passing_coverage = args.minimum_passing_coverage, 
         useCi = useCi,
         html_base_dir = args.html_base_dir,
         source_root = args.source_root,
+        generate_data = args.generate_data,
+        send_data = args.send_data,
         verbose = args.verbose
     )
     
