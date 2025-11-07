@@ -228,27 +228,40 @@ def send_metrics_annotations(annotationData, workspace, repo_slug, commit_hash, 
 
 def saveDataForSending(summary, annotationData, link, verbose):
     
-    with open("metrics_summary.bb_txt", "wb") as fd:
+    savePath = os.path.join(os.environ['BITBUCKET_CLONE_DIR'],"saved-metrics-data" )
+
+    if not os.path.exists(savePath):
+        os.makedirs(savePath)
+        
+    fname = os.path.join(savePath,"metrics_summary.bb_txt")
+    with open(fname, "wb") as fd:
         fd.write(summary.encode(encFmt,'replace'))
         
-    with open("metrics_annotation_data.bb_txt", "wb") as fd:
+    fname = os.path.join(savePath,"metrics_annotation_data.bb_txt")
+    with open(fname, "wb") as fd:
         saveData = json.dumps(annotationData, ensure_ascii=False).encode(encFmt, "replace")
         fd.write(saveData)
         
-    with open("metrics_link.bb_txt", "wb") as fd:
+    fname = os.path.join(savePath,"metrics_link.bb_txt")
+    with open(fname, "wb") as fd:
         fd.write(link.encode(encFmt,'replace'))
         
 def readSavedData(verbose = False):
     
-    with open("metrics_summary.bb_txt", "rb") as fd:
+    savePath = os.path.join(os.environ['BITBUCKET_CLONE_DIR'],"saved-metrics-data" )
+    
+    fname = os.path.join(savePath,"metrics_summary.bb_txt")
+    with open(fname, "rb") as fd:
         summary = fd.read().decode(encFmt, 'replace')
         
-    with open("metrics_annotation_data.bb_txt", "rb") as fd:
+    fname = os.path.join(savePath,"metrics_annotation_data.bb_txt")        
+    with open(fname, "rb") as fd:
         raw = fd.read()
         rawAsText= raw.decode(encFmt, "replace")
         annotationData = json.loads(rawAsText)
 
-    with open("metrics_link.bb_txt", "rb") as fd:
+    fname = os.path.join(savePath,"metrics_link.bb_txt")        
+    with open(fname, "rb") as fd:
         link = fd.read().decode(encFmt, 'replace')
         
     return summary, annotationData, link
