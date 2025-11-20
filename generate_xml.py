@@ -82,7 +82,32 @@ class BaseGenerateXml(object):
             self.use_ci = " --ci "
         else:
             self.use_ci = ""
+        self.system_tests_status_report_generated = False
             
+    def generate_system_test_status_report(self):
+        if self.system_tests_status_report_generated:
+            return
+
+        report_name = os.path.basename(self.FullManageProjectName)[:-4] + "_system_tests_status.html"
+
+        print("   Creating System Test Status " + self.FullManageProjectName)
+        callStr = os.environ.get('VECTORCAST_DIR') + os.sep + "manage -p " + self.FullManageProjectName + " --system-tests-status=" + report_name
+
+        import subprocess
+
+        print(callStr)
+        p = subprocess.Popen(callStr, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True)
+        out, err = p.communicate()
+
+        if os.path.exists(report_name):
+            print("File exists: " + report_name)
+        else:
+            print("File not exists: " + report_name)
+
+        if err:
+            print("Cannot create system test status report{} {}".format(out, err))
+
+        self.system_tests_status_report_generated = True
 #
 # BaseGenerateXml - calculate coverage value
 #
@@ -542,7 +567,8 @@ class GenerateXml(BaseGenerateXml):
         self.cbtDict = None
         
         if os.path.exists(cov_path) and os.path.exists(cov_path[:-4]):
-            self.using_cover = True
+            self.using_cover = True     
+            self.generate_system_test_status_report()            
             try:
                 self.api = CoverApi(cov_path)
             except:
@@ -621,18 +647,16 @@ class GenerateXml(BaseGenerateXml):
                             if self.verbose:
                                 print (level, st.name, pass_fail_rerun)
                             self.write_testcase(st, level, st.name)
-                from generate_qa_results_xml import saveQATestStatus
-                saveQATestStatus(self.FullManageProjectName)
-
                 api.close()
 
             except ImportError as e:
-                from generate_qa_results_xml import genQATestResults
-                pc,fc = genQATestResults(self.FullManageProjectName, self.compiler+ "/" + self.testsuite, self.env, True, self.encFmt)
-                self.failed_count += fc
-                self.passed_count += pc
-                return
+                pass
 
+            from generate_qa_results_xml import genQATestResults
+            pc,fc = genQATestResults(self.FullManageProjectName, self.compiler + "/" + self.testsuite, self.env, True, self.encFmt)
+            self.failed_count += fc
+            self.passed_count += pc 
+                       
         else:
 
             try:

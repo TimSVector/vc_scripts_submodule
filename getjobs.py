@@ -162,12 +162,14 @@ def printEnvInfoNoDataAPI(ManageProjectName, printData = True, printEnvType = Fa
     
     max_indent = 0
     veryMax = 8
-
+    last_index_max_line = 0
+    
     for line in enabledList:
         indent = len(line) - len(line.lstrip())
         
         if indent > max_indent and indent <= veryMax:
             max_indent = indent
+            last_index_max_line = line
 
     if max_indent == 8:
         source_match_string    = "^   [^\s]"
@@ -190,6 +192,9 @@ def printEnvInfoNoDataAPI(ManageProjectName, printData = True, printEnvType = Fa
         group_match_string     = None
         env_match_string       = "^     [^\s]"
     else:
+        print("[DEBUG] Error with full-status report")
+        print("[DEBUG] Highest indent is with this line\n" + str(last_index_max_line))
+        print("\n".join(enabledList))
         raise ValueError("Error deciphering max_index: " +  str(max_indent))
         
     source = None
@@ -234,12 +239,12 @@ def printEnvironmentInfo(ManageProjectName, printData = True, printEnvType = Fal
     try:
             
         from vector.apps.DataAPI.vcproject_api import VCProjectApi
-        api = VCProjectApi(ManageProjectName)
-        ret_info = printEnvInfoDataAPI(api, printData, printEnvType)
-        api.close()
+
+        vcproj = VCProjectApi(ManageProjectName)
+        ret_info = printEnvInfoDataAPI(vcproj, printData, printEnvType)
+        vcproj.close()
         return ret_info
 
-    
     except:    
         return printEnvInfoNoDataAPI(ManageProjectName, printData, printEnvType)
 

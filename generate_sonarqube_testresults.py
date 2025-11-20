@@ -558,11 +558,11 @@ class GenerateXml(BaseGenerateXml):
         if isinstance(self.api, CoverApi):
             try:
                 if self.topLevelAPI == None:
-                    api = VCProjectApi(self.FullManageProjectName)
+                    vcproj = VCProjectApi(self.FullManageProjectName)
                 else:
-                    api = self.topLevelAPI
+                    vcproj = self.topLevelAPI
                         
-                for env in api.Environment.all():
+                for env in vcproj.Environment.all():
                     if env.compiler.name == self.compiler and env.testsuite.name == self.testsuite and env.name == self.env and env.system_tests:
                         for st in env.system_tests:
                             pass_fail_rerun = ""
@@ -580,12 +580,8 @@ class GenerateXml(BaseGenerateXml):
                                 print ("{} {} {}".format(level, st.name, pass_fail_rerun))
                             self.write_testcase(st, level, st.name, env.definition.is_monitored)
 
-                # callStr = os.getenv('VECTORCAST_DIR') + os.sep + "manage -p " + self.FullManageProjectName + " --system-tests-status=" + self.manageProjectName + "_system_tests_status.html"
-                # p = subprocess.Popen(callStr, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True)
-                # out, err = p.communicate()
-
                 if self.topLevelAPI == None:
-                    api.close()
+                    vcproj.close()
 
             except ImportError as e:
                 from generate_qa_results_xml import genQATestResults

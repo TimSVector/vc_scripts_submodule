@@ -23,9 +23,6 @@
 #
 
 from __future__ import print_function
-
-# adding path
-
 import datetime
 try:
     from html import escape
@@ -210,36 +207,31 @@ def processSystemTestResultsData(lines, encoding = 'utf-8'):
         
     return passed, failed
         
-def saveQATestStatus(mp):
-    callStr = os.environ.get('VECTORCAST_DIR') + os.sep + "manage -p " + mp + " --system-tests-status=" + os.path.basename(mp)[:-4] + "_system_tests_status.html"
-    p = subprocess.Popen(callStr, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True)
-    out, err = p.communicate()
-
 def genQATestResults(mp, level = None, envName = None, verbose = False, encoding = 'utf-8'):
+    passed_count = 0
+    failed_count = 0
+
     try:
         from vector.apps.DataAPI.manage_models import SystemTest
-        if verbose:
-            print("No need to process system test results using --system-tests-status")
-        return
     except:
-        pass
+        if verbose:
+            print("No QA Environment that can be processed using --system-tests-status")
+        return passed_count, failed_count
 
-    print("   Processing QA test results for " + mp)
-    callStr = os.environ.get('VECTORCAST_DIR') + os.sep + "manage -p " + mp + " --system-tests-status"
-    if level:
-        callStr += " --level " + level
-        if envName:
-            callStr += " -e " + envName
+    if level and envName:
+        nameLevel = level + "_" + envName
+        nameLevel = nameLevel.replace("\\","/").replace("/","_")
+        report_name = "{}_{}_system_tests_status.html".format(os.path.basename(mp)[:-4], nameLevel)
+    else:
+        report_name = os.path.basename(mp)[:-4] + "_system_tests_status.html"
+
+    if os.path.exists(report_name):
+        with open(report_name,"rb") as fd:
+            raw = fd.read()
+            out = raw.decode(encoding, 'replace')
+                            
+        passed_count, failed_count = processSystemTestResultsData(out.splitlines(), encoding)
         
-    p = subprocess.Popen(callStr, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True)
-    out, err = p.communicate()
-        
-    if err:
-        print("{} {}".format(out, err))
-    passed_count, failed_count = processSystemTestResultsData(out.splitlines(), encoding)
-    
-    saveQATestStatus(mp)
-    
     return passed_count, failed_count
         
 if __name__ == '__main__':

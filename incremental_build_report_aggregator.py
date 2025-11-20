@@ -30,17 +30,17 @@ import locale
 import os, shutil, glob, logging
 import sys, os
 
-from vcast_utils import checkVectorCASTVersion
+# adding path
+if sys.version_info[0] < 3:
+    python_path_updates = os.path.join(os.path.dirname(os.path.abspath(__file__)),'vpython-addons')
+    sys.path.append(python_path_updates)
 
-if not checkVectorCASTVersion(21):
-    raise ImportError("Cannot combine incremental rebuild reports with this version of VectorCAST. Please upgrade.")
-    
 from bs4 import BeautifulSoup
 
 try:
     from safe_open import open
 except:
-    pass    
+    pass
 from vcast_utils import getVectorCASTEncoding
 
 import re
