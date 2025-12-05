@@ -56,12 +56,12 @@ except:
             return "0"
         else:
             return str(int(round(100.0 * float(x) / float(y))))
-                   
+
 from operator import attrgetter
 from vector.enums import COVERAGE_TYPE_TYPE_T
 from vector.enums import ENVIRONMENT_STATUS_TYPE_T
 from vcast_utils import dump, getVectorCASTEncoding
-import hashlib 
+import hashlib
 
 def dummy(*args, **kwargs):
     return None
@@ -83,7 +83,7 @@ class BaseGenerateXml(object):
         else:
             self.use_ci = ""
         self.system_tests_status_report_generated = False
-            
+
     def generate_system_test_status_report(self):
         if self.system_tests_status_report_generated:
             return
@@ -154,8 +154,8 @@ class BaseGenerateXml(object):
             s = convertDict[str(status)]
         except:
             s = convertDict[status]
-        return s 
-        
+        return s
+
     def has_any_coverage(self,unit_or_func):
         if unit_or_func.coverdb.has_covered_function_calls or \
            unit_or_func.coverdb.has_covered_functions      or \
@@ -199,8 +199,12 @@ class BaseGenerateXml(object):
                         entry["function"] = '0% (0 / 1)'
 
         if self.has_call_coverage:
-            entry["functioncall"] = self.calc_cov_values(metrics.max_covered_function_calls, metrics.function_calls)
-            
+            entry["functioncall"] = self.calc_cov_values(
+                metrics.max_covered_function_calls +
+                    metrics.max_annotated_function_calls,
+                metrics.function_calls
+            )
+
         if self.verbose:
             print("Coverage Type:", cov_type)
 
@@ -208,20 +212,48 @@ class BaseGenerateXml(object):
             return entry
 
         if "MCDC" in cov_type_str:
-            entry["mcdc"] = self.calc_cov_values(metrics.max_covered_mcdc_branches, metrics.mcdc_branches)
+            entry["mcdc"] = self.calc_cov_values(
+                metrics.max_covered_mcdc_branches +
+                    metrics.max_annotated_mcdc_branches,
+                metrics.mcdc_branches
+            )
             if not self.simplified_mcdc:
-                entry["mcdc"] = self.calc_cov_values(metrics.max_covered_mcdc_pairs, metrics.mcdc_pairs)
-            entry["branch"] = self.calc_cov_values(metrics.max_covered_mcdc_branches, metrics.mcdc_branches)
+                entry["mcdc"] = self.calc_cov_values(
+                    metrics.max_covered_mcdc_pairs +
+                        metrics.max_annotated_mcdc_pairs,
+                    metrics.mcdc_pairs
+                )
+            entry["branch"] = self.calc_cov_values(
+                metrics.max_covered_mcdc_branches +
+                    metrics.max_annotated_mcdc_branches,
+                metrics.mcdc_branches
+            )
         if "BASIS_PATH" in cov_type_str:
             (cov,total) = unit_or_func.basis_paths_coverage
             entry["basis_path"] = self.calc_cov_values(cov, total)
         if "STATEMENT" in cov_type_str:
-            entry["statement"] = self.calc_cov_values(metrics.max_covered_statements, metrics.statements)
+            entry["statement"] = self.calc_cov_values(
+                metrics.max_covered_statements +
+                    metrics.max_annotated_statements,
+                metrics.statements
+            )
         if "BRANCH" in cov_type_str:
-            entry["branch"] = self.calc_cov_values(metrics.max_covered_branches, metrics.branches)
+            entry["branch"] = self.calc_cov_values(
+                metrics.max_covered_branches +
+                    metrics.max_annotated_branches,
+                metrics.branches
+            )
         if "FUNCTION_FUNCTION_CALL" in cov_type_str:
-            entry["functioncall"] = self.calc_cov_values(metrics.max_covered_function_calls, metrics.function_calls)
-            entry["function"] = self.calc_cov_values(metrics.max_covered_functions, metrics.functions)
+            entry["functioncall"] = self.calc_cov_values(
+                metrics.max_covered_function_calls +
+                    metrics.max_annotated_function_calls,
+                metrics.function_calls
+            )
+            entry["function"] = self.calc_cov_values(
+                metrics.max_covered_functions +
+                    metrics.max_annotated_functions,
+                metrics.functions
+            )
 
         return entry
 
@@ -239,29 +271,54 @@ class BaseGenerateXml(object):
         entry["basispath"] = None
         entry["function"] = None
         entry["functioncall"] = None
-        
+
         if self.has_function_coverage:
-            entry["function"] = self.calc_cov_values(self.grand_total_max_covered_functions, self.grand_total_max_coverable_functions)
+            entry["function"] = self.calc_cov_values(
+                self.grand_total_max_covered_functions,
+                self.grand_total_max_coverable_functions
+            )
         if self.has_call_coverage:
-            entry["functioncall"] = self.calc_cov_values(self.grand_total_max_covered_function_calls, self.grand_total_function_calls)           
+            entry["functioncall"] = self.calc_cov_values(
+                self.grand_total_max_covered_function_calls,
+                self.grand_total_function_calls
+            )
         if cov_type == None:
             return entry
         if "MCDC" in cov_type_str:
-            entry["mcdc"] = self.calc_cov_values(self.grand_total_max_mcdc_covered_branches, self.grand_total_mcdc_branches)
+            entry["mcdc"] = self.calc_cov_values(
+                self.grand_total_max_mcdc_covered_branches, 
+                self.grand_total_mcdc_branches
+            )
             if not self.simplified_mcdc:
-                entry["mcdc"] = self.calc_cov_values(self.grand_total_max_covered_mcdc_pairs, self.grand_total_mcdc_pairs)
-            entry["branch"] = self.calc_cov_values(self.grand_total_max_mcdc_covered_branches, self.grand_total_mcdc_branches)
+                entry["mcdc"] = self.calc_cov_values(
+                    self.grand_total_max_covered_mcdc_pairs, 
+                    self.grand_total_mcdc_pairs
+                )
+            entry["branch"] = self.calc_cov_values(
+                self.grand_total_max_mcdc_covered_branches, 
+                self.grand_total_mcdc_branches
+            )
         if "BASIS_PATH" in cov_type_str:
-            entry["basis_path"] = self.calc_cov_values(self.grand_total_cov_basis_path, self.grand_total_total_basis_path)
+            entry["basis_path"] = self.calc_cov_values(
+                self.grand_total_cov_basis_path, 
+                self.grand_total_total_basis_path
+            )
         if "STATEMENT" in cov_type_str:
-            entry["statement"] = self.calc_cov_values(self.grand_total_max_covered_statements, self.grand_total_statements)
+            entry["statement"] = self.calc_cov_values(
+                self.grand_total_max_covered_statements, 
+                self.grand_total_statements
+            )
         if "BRANCH" in cov_type_str:
-            entry["branch"] = self.calc_cov_values(self.grand_total_max_covered_branches, self.grand_total_branches)
+            entry["branch"] = self.calc_cov_values(
+                self.grand_total_max_covered_branches, 
+                self.grand_total_branches
+            )
         if "FUNCTION_FUNCTION_CALL" in cov_type_str:
-            entry["functioncall"] = self.calc_cov_values(self.grand_total_max_covered_function_calls, self.grand_total_function_calls)
-
+            entry["functioncall"] = self.calc_cov_values(
+                self.grand_total_max_covered_function_calls, 
+                self.grand_total_function_calls
+            )
         return entry
-
 #
 # Internal - generate the formatted timestamp to write to the coverage file
 #
@@ -448,21 +505,48 @@ class BaseGenerateXml(object):
             if functions_added:
                 self.our_units.append(entry)
 
-            self.grand_total_max_covered_branches += metrics.max_covered_branches + metrics.max_covered_mcdc_branches
-            self.grand_total_branches += metrics.branches + metrics.mcdc_branches
-            self.grand_total_max_covered_statements += metrics.max_covered_statements
+            self.grand_total_branches += (
+                metrics.branches + metrics.mcdc_branches
+            )
             self.grand_total_statements += metrics.statements
-            self.grand_total_max_mcdc_covered_branches += metrics.max_covered_mcdc_branches
-            self.grand_total_mcdc_branches += metrics.mcdc_branches
-            self.grand_total_max_covered_mcdc_pairs += metrics.max_covered_mcdc_pairs
+            self.grand_total_mcdc_branches += metrics.mcdc_branches                
             self.grand_total_mcdc_pairs += metrics.mcdc_pairs
-            self.grand_total_max_covered_function_calls += metrics.max_covered_function_calls
             self.grand_total_function_calls += metrics.function_calls
+
+            self.grand_total_max_covered_statements += (
+                metrics.max_covered_statements + 
+                metrics.max_annotated_statements
+            )
+            self.grand_total_max_covered_branches += (
+                metrics.max_covered_branches + 
+                metrics.max_covered_mcdc_branches +
+                metrics.max_annotated_branches + 
+                metrics.max_annotated_mcdc_branches
+            )
+    
+            self.grand_total_max_mcdc_covered_branches += (
+                metrics.max_covered_mcdc_branches +
+                metrics.max_annotated_mcdc_branches
+            )
+
+            self.grand_total_max_covered_mcdc_pairs += (
+                metrics.max_covered_mcdc_pairs +
+                metrics.max_annotated_mcdc_pairs
+            )
+            self.grand_total_max_covered_function_calls += (
+                metrics.max_covered_function_calls + 
+                metrics.max_annotated_function_calls
+            )
 
             try:
                 if self.has_function_coverage:
-                    self.grand_total_max_covered_functions += metrics.covered_functions
-                    self.grand_total_max_coverable_functions += metrics.functions
+                    self.grand_total_max_covered_functions += (
+                        metrics.max_covered_functions +
+                        metrics.max_annotated_functions
+                    )
+                    self.grand_total_max_coverable_functions += (
+                        metrics.functions
+                    )
             except:
                 pass
 
@@ -486,9 +570,9 @@ class GenerateManageXml (BaseGenerateXml):
 
         self.api = VCProjectApi(manage_path)
 
-    def write_coverage_data(self): 
+    def write_coverage_data(self):
         data = "  <combined-coverage type=\"complexity, %%\" value=\"0%% ({} / 0)\"/>\n".format(self.grand_total_complexity)
-        if self.coverage["statement"]: 
+        if self.coverage["statement"]:
             data +=  "  <combined-coverage type=\"statement, %%\" value=\"{}\"/>\n".format(self.coverage["statement"])
         if self.coverage["branch"]:
             data += "  <combined-coverage type=\"branch, %%\" value=\"{}\"/>\n".format(self.coverage["branch"])
@@ -517,7 +601,7 @@ class GenerateManageXml (BaseGenerateXml):
         self.write_coverage_data()
         self.end_cov_file()
         self.api.close()
-        
+
 ##########################################################################
 # This class generates the XML (Junit based) report for dynamic tests and
 # the XML (Emma based) report for Coverage results
@@ -530,7 +614,7 @@ class GenerateXml(BaseGenerateXml):
         super(GenerateXml, self).__init__(cover_report_name, verbose, use_ci)
 
         self.FullManageProjectName = FullManageProjectName
-        
+
         ## use hash code instead of final directory name as regression scripts can have overlapping final directory names
         build_dir = build_dir.replace("\\","/")
         if build_dir.endswith("/."):
@@ -565,16 +649,16 @@ class GenerateXml(BaseGenerateXml):
         self.noResults = False
         self.report_failed_only = False
         self.cbtDict = None
-        
+
         if os.path.exists(cov_path) and os.path.exists(cov_path[:-4]):
-            self.using_cover = True     
-            self.generate_system_test_status_report()            
+            self.using_cover = True
+            self.generate_system_test_status_report()
             try:
                 self.api = CoverApi(cov_path)
             except:
                 self.api = None
                 return
-            
+
         elif os.path.exists(unit_path) and os.path.exists(unit_path[:-4]):
             self.using_cover = False
             try:
@@ -583,12 +667,12 @@ class GenerateXml(BaseGenerateXml):
                 self.api = None
 
                 return
-                
+
             if self.api.environment.status != ENVIRONMENT_STATUS_TYPE_T.NORMAL:
                 self.api.close()
                 self.api = None
                 return
-            
+
         else:
             self.api = None
             if verbose:
@@ -622,14 +706,14 @@ class GenerateXml(BaseGenerateXml):
 # GenerateXml - Find the test case file
 #
     def generate_unit(self):
-         
+
         if isinstance(self.api, CoverApi):
 
             try:
                 from vector.apps.DataAPI.vcproject_api import VCProjectApi
                 self.start_system_test_file()
                 api = VCProjectApi(self.FullManageProjectName)
-                
+
                 for env in api.Environment.all():
                     if env.compiler.name == self.compiler and env.testsuite.name == self.testsuite and env.name == self.env and env.system_tests:
                         for st in env.system_tests:
@@ -642,7 +726,7 @@ class GenerateXml(BaseGenerateXml):
                                 pass_fail_rerun =  ": Passed"
                             else:
                                 pass_fail_rerun =  ": Failed"
-                                
+
                             level = env.compiler.name + "/" + env.testsuite.name + "/" + env.name
                             if self.verbose:
                                 print (level, st.name, pass_fail_rerun)
@@ -655,8 +739,8 @@ class GenerateXml(BaseGenerateXml):
             from generate_qa_results_xml import genQATestResults
             pc,fc = genQATestResults(self.FullManageProjectName, self.compiler + "/" + self.testsuite, self.env, True, self.encFmt)
             self.failed_count += fc
-            self.passed_count += pc 
-                       
+            self.passed_count += pc
+
         else:
 
             try:
@@ -715,11 +799,11 @@ class GenerateXml(BaseGenerateXml):
         self.fh = open(self.unit_report_name, "wb")
         errors = 0
         failed = 0
-        success = 0                                            
-        
-        from vector.apps.DataAPI.vcproject_api import VCProjectApi 
+        success = 0
+
+        from vector.apps.DataAPI.vcproject_api import VCProjectApi
         api = VCProjectApi(self.FullManageProjectName)
-        
+
         for env in api.Environment.all():
             if env.compiler.name == self.compiler and env.testsuite.name == self.testsuite and env.name == self.env and env.system_tests:
                 for st in env.system_tests:
@@ -728,16 +812,16 @@ class GenerateXml(BaseGenerateXml):
                         self.passed_count += 1
                     else:
                         failed += 1
-                        errors += 1  
+                        errors += 1
                         self.failed_count += 1
-        api.close()            
+        api.close()
 
-        data =  "<?xml version=\"1.0\" encoding=\"{}\"?>\n".format(self.encFmt)         
+        data =  "<?xml version=\"1.0\" encoding=\"{}\"?>\n".format(self.encFmt)
         data += "<testsuites>\n"
         data += "    <testsuite errors=\"{}\" tests=\"{}\" failures=\"{}\" name=\"{}\" id=\"1\">\n".format(errors, success+failed+errors, failed, escape(self.env, quote=False))
-        
+
         self.fh.write(data.encode(self.encFmt, "replace"))
-                
+
     def start_unit_test_file(self):
         if self.verbose:
             print("  Writing testcase xml file:        {}".format(self.unit_report_name))
@@ -745,9 +829,9 @@ class GenerateXml(BaseGenerateXml):
         self.fh = open(self.unit_report_name, "wb")
         errors = 0
         failed = 0
-        success = 0                                            
-        
-        for tc in self.api.TestCase.all():        
+        success = 0
+
+        for tc in self.api.TestCase.all():
             if (not tc.for_compound_only or tc.testcase_status == "TCR_STRICT_IMPORT_FAILED") and not self.isTcPlaceHolder(tc):
                 if not tc.passed:
                     self.failed_count += 1
@@ -757,16 +841,16 @@ class GenerateXml(BaseGenerateXml):
                 else:
                     success += 1
                     self.passed_count += 1
-                    
+
         data = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n"
         data += "<testsuites>\n"
         data += "    <testsuite errors=\"{}\" tests=\"{}\" failures=\"{}\" name=\"{}\" id=\"1\">\n".format(
             errors,
-            success+failed+errors, 
-            failed, 
+            success+failed+errors,
+            failed,
             escape(self.env, quote=False)
         )
-        
+
         self.fh.write(data.encode(self.encFmt, "replace"))
 
 #
@@ -817,7 +901,7 @@ class GenerateXml(BaseGenerateXml):
             unitName = unit.name
 
         isSystemTest = False
-        
+
         try:
             from vector.apps.DataAPI.manage_models import SystemTest
             if (isinstance(tc, SystemTest)):
@@ -866,7 +950,7 @@ class GenerateXml(BaseGenerateXml):
         if isSystemTest:
             if fpath == "":
                 fpath = tc_name
-                
+
             tc_name_full =  classname + "." + tc_name
             exp_total = tc.total
             exp_pass = tc.passed
@@ -892,16 +976,16 @@ class GenerateXml(BaseGenerateXml):
             summary = tc.history.summary
             exp_total = summary.expected_total
             exp_pass = exp_total - summary.expected_fail
-            
+
             if summary.control_flow_fail > 0:
                 control_flow_fail = True
-            
+
             if summary.unexpected_exceptions > 0:
                 exception_fail = True
-            
+
             if summary.signals > 0:
                 signal_fail = True
-            
+
             exp_pass += summary.control_flow_total - summary.control_flow_fail
             exp_total += summary.control_flow_total + summary.signals + summary.unexpected_exceptions
 
@@ -914,7 +998,7 @@ class GenerateXml(BaseGenerateXml):
             else:
                 status = "notrun"
                 extra_message = "Test was not executed"
-                
+
         extra_message = escape(extra_message, quote=False)
         extra_message = extra_message.replace("\"","")
         extra_message = extra_message.replace("\n","&#xA;")
@@ -927,17 +1011,17 @@ class GenerateXml(BaseGenerateXml):
         elif not tc.passed:
             whyFail = ""
             expectedResultsFailure = ""
-            
+
             if exception_fail:
                 whyFail += "Unexpected exception failure. "
-                
+
             if signal_fail:
                 whyFail += "Signal failure. "
-                
+
             if control_flow_fail:
                 whyFail += "Control flow failure. "
-                expectedResultsFailure = "Control flow values" 
-                
+                expectedResultsFailure = "Control flow values"
+
             if tc.history.summary.expected_total:
                 whyFail += "Expected values failure. "
                 if len(expectedResultsFailure) > 0:
@@ -946,10 +1030,10 @@ class GenerateXml(BaseGenerateXml):
 
             if whyFail == "Signal failure. ":
                 extraStatus = '<failure type="failure" message="Signal failure"/>'
-                
+
             elif extra_message == "Strict Test Import Failure":
                 extraStatus = '<failure type="failure" message="Strict Test Import Failure"/>'
-                
+
             elif tcSkipped:
                 status = "skipped"
                 extraStatus = '<failure type="failure" message="{}. {}{}: {}/{}"/>'.format(extra_message, whyFail, expectedResultsFailure, exp_pass, exp_total)
@@ -966,17 +1050,17 @@ class GenerateXml(BaseGenerateXml):
         if extraStatus != "":
             extraXmlTag = ">\n            " + extraStatus + "\n        </testcase>\n"
         else:
-            extraXmlTag = "/>\n" 
-            
-        data = testcaseString % (tc_name_full, classname, deltaTimeStr, fpath, status, extraXmlTag)  
+            extraXmlTag = "/>\n"
 
-        self.fh.write(data.encode(self.encFmt, "replace"))   
-            
+        data = testcaseString % (tc_name_full, classname, deltaTimeStr, fpath, status, extraXmlTag)
+
+        self.fh.write(data.encode(self.encFmt, "replace"))
+
 #
 # Internal - no support for skipped test cases yet
 #
     def was_test_case_skipped(self, tc, searchName, isSystemTest):
-        return False                     
+        return False
         try:
             if isSystemTest:
                 compoundTests, initTests,  simpleTestcases = self.cbtDict[self.hashCode]
@@ -1012,13 +1096,13 @@ class GenerateXml(BaseGenerateXml):
             if self.print_exc:
                 print ("CBT Dictionary:" + self.cbtDict, width = 132)
                 pprint(self.cbtDict, width = 132)
-                
+
 #
 # Internal - write the end of the jUnit XML file and close it
 #
     def end_test_results_file(self):
         self.fh.write("   </testsuite>\n".encode(self.encFmt, "replace"))
-        self.fh.write("</testsuites>\n".encode(self.encFmt, "replace")) 
+        self.fh.write("</testsuites>\n".encode(self.encFmt, "replace"))
         self.fh.close()
 
 #
@@ -1117,7 +1201,7 @@ class GenerateXml(BaseGenerateXml):
                 data += "            <coverage type=\"complexity, %%\" value=\"0%% ({} / 0)\"/>\n".format(func["complexity"])
 
                 data += "          </subprogram>\n"
-            data += "        </unit>\n"     
+            data += "        </unit>\n"
             self.fh_write(data.encode(self.encFmt, "replace"))
 
 #
@@ -1130,14 +1214,14 @@ class GenerateXml(BaseGenerateXml):
             self.units.sort(key=lambda x: (x.coverage_type, x.unit_index))
         else:
             self.units = self.api.Unit.all()
-            
+
         # unbuilt (re: Error) Ada environments causing a crash
         try:
             cov_type = self.api.environment.coverage_type_text
         except Exception as e:
             print("Couldn't access coverage information...skipping.  Check console for environment build/execution errors")
             return
-            
+
         self._generate_cover(cov_type)
 
         self.start_cov_file_environment()
@@ -1186,19 +1270,19 @@ if __name__ == '__main__':
 
     xml_file = GenerateXml(env,
                            envPath,
-                           env, "", "", 
+                           env, "", "",
                            xmlCoverReportName,
                            jenkins_name,
                            xmlTestingReportName,
                            jenkins_link,
-                           jobNameDotted, 
-                           args.verbose, 
+                           jobNameDotted,
+                           args.verbose,
                            None,
                            args.ci)
 
     if xml_file.api == None:
         print ("\nCannot find project file (.vcp or .vce): " + envPath + os.sep + env)
-        
+
     elif xml_file.using_cover:
         xml_file.generate_cover()
         print ("\nvectorcast-coverage plugin for Jenkins compatible file generated: " + xmlCoverReportName)

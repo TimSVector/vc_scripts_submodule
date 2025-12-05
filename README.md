@@ -135,8 +135,10 @@ The api for vcast_exec.py follows:
 ```
 
 # Change log
-10/2025
-* Updated to keep in syhc with Jenkins integration
+12/2025
+* Fixed a problem with a missing space before useCI
+* Updated script to account for CBA
+* Updated to keep in sync with Jenkins integration
    * Encoding issues  
    * Using @contextlib for file open
 * Adding support to work with BitBucket Pipelines

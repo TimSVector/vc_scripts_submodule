@@ -158,7 +158,7 @@ def getManageEnvs(FullManageProjectName, use_ci = ""):
     manageEnvs = {}
 
     cmd_prefix = os.environ.get('VECTORCAST_DIR') + os.sep
-    callStr = cmd_prefix + "manage --project " + FullManageProjectName + use_ci + " --build-directory-name"
+    callStr = cmd_prefix + "manage --project " + FullManageProjectName + " " + use_ci + " --build-directory-name"
     out_mgt = runManageWithWait(callStr, silent=True)
     if verbose:
         print(out_mgt)
@@ -207,7 +207,7 @@ def genDataApiReports(FullManageProjectName, entry, use_ci, xml_data_dir):
 
     global print_exc
     
-    xml_file = ""
+    xml_file = None
     
     try:
         from generate_xml import GenerateXml
