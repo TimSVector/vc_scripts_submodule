@@ -19,7 +19,8 @@ Results can be published in the following formats
 
 * Test Results
     * To _GitLab Pipeline_ **, **_Microsoft Azure_**, **_GitHub Actions_**, **_BitBucket Pipelines_**, and **_Jenkins_** : **_JUnit_** (xml_data/junit)
-    * To **_SonarQube_**: **_CppUnit_** (xml_data/sonarqube)  
+    * To **_SonarQube_**: **_CppUnit_** (xml_data/sonarqube)
+    
 * Static Analysis to **_GitLab_**: **_CodeClimate_** (pclp/gl-code-quality-report.json)
 
 :warning: Due to the limiations of Cobertura plugin, only Statement and Branch results are reported
@@ -34,17 +35,15 @@ The api for vcast_exec.py follows:
     usage: vcast_exec.py [-h] [--build-execute] [--build | --incremental]
                          [--output_dir OUTPUT_DIR] [--source_root SOURCE_ROOT]
                          [--html_base_dir HTML_BASE_DIR] [--cobertura]
-                         [--cobertura_extended] [--send_to_bitbucket]
-                         [--send_all_coverage]
-                         [--minimum_passing_coverage MINIMUM_PASSING_COVERAGE]
-                         [--lcov] [--junit] [--export_rgw] [--sonarqube]
-                         [--pclp_input PCLP_INPUT]
+                         [--cobertura_extended] [--lcov] [--junit] [--export_rgw]
+                         [--sonarqube] [--pclp_input PCLP_INPUT]
                          [--pclp_output_html PCLP_OUTPUT_HTML]
                          [--exit_with_failed_count [EXIT_WITH_FAILED_COUNT]]
-                         [--aggregate] [--metrics] [--fullstatus] [--utfull]
-                         [--tcmr] [--index] [--jobs JOBS] [--ci] [-l LEVEL]
-                         [-e ENVIRONMENT] [--gitlab | --azure] [--print_exc]
-                         [--timing] [-v] [--version]
+                         [--check_build_log] [--aggregate] [--metrics]
+                         [--fullstatus] [--utfull] [--tcmr] [--noindex]
+                         [--jobs JOBS] [--ci] [-l LEVEL] [-e ENVIRONMENT]
+                         [--gitlab | --azure] [--print_exc] [--timing] [-v]
+                         [--version]
                          [ManageProject]
 
     positional arguments:
@@ -75,13 +74,6 @@ The api for vcast_exec.py follows:
       --cobertura           Generate coverage results in Cobertura xml format
       --cobertura_extended  Generate coverage results in extended Cobertura xml
                             format
-      --send_to_bitbucket   Generate Junit and Extended Cobertura data to send to
-                            BitBucket
-      --send_all_coverage   Send all coverage to BitBucket. Default is partial or
-                            not coveraged
-      --minimum_passing_coverage MINIMUM_PASSING_COVERAGE
-                            Minimum overall coverage required to pass (default 80
-                            percent)
       --lcov                Generate coverage results in an LCOV format
       --junit               Generate test results in Junit xml format
       --export_rgw          Export RGW data
@@ -97,6 +89,8 @@ The api for vcast_exec.py follows:
                             Returns failed test case count as script exit. Set a
                             value to indicate a percentage above which the job
                             will be marked as failed
+      --check_build_log     Checks build log for a list of error phrases. Returns
+                            failure if any are found.
 
     Report Selection:
       VectorCAST Manage reports that can be generated
@@ -108,8 +102,8 @@ The api for vcast_exec.py follows:
                             in project
       --tcmr                Generate Test Cases Management Reports for each
                             VectorCAST environment in project
-      --index               Generate an index.html report that ties all the other
-                            HTML reports together
+      --noindex             Stops index.html report that ties all the other HTML
+                            reports together from being created
 
     Build/Execution Options:
       Options that effect build/execute operation
@@ -135,6 +129,14 @@ The api for vcast_exec.py follows:
 ```
 
 # Change log
+01/2025
+* Added --check_build_log to examine the VectorCAST build log to see if any errors occurred during the build-execute
+   * return codes:
+       * -1 - Build log not found
+       *  0 - No issues
+       *  1 - Unstable phrases found.  Not critical
+       *  2 - Failure phrases in the build log.  
+
 12/2025
 * Fixed a problem with a missing space before useCI
 * Updated script to account for CBA
