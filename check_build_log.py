@@ -27,6 +27,8 @@ VC_failurePhrases = [
     "not being accessed by another process",
     "not permitted in continuous integration mode",
     "has been opened by a newer version of VectorCAST",
+    "Environment built but not Compiled",
+    "ERROR: Compile failed for unit"
 ]
 
 VC_unstablePhrases = [
