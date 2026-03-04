@@ -193,7 +193,7 @@ class VectorCASTExecute(object):
         self.env_option = ""
         self.level_option = ""
         self.needIndexHtml = False
-
+        self.rerun_failed_tc = args.rerun_failed_tc
         # if a manage level was specified...
         if args.level:
             self.useLevelEnv = True
@@ -286,6 +286,22 @@ class VectorCASTExecute(object):
                 continue
             k, v = line.split("=", 1)
             os.environ[k] = v
+            
+    def rerun_failed_testcases(self):
+        any_rerun = False
+        for testcase_info in self.failed_tc_list:
+            comp, ts, envName, tcName, unitName, subpName, status = testcase_info
+            if True or status != "TCR_STRICT_IMPORT_FAILED":
+                any_rerun = True
+                manageCmd = ""
+                if unitName == "SystemTest" and subpName == "SystemTest":
+                    manageCmd = f"--execute-system-tests --failed --level {comp}/{ts} --environment {envName} --verbose"
+                else:
+                    manageCmd = f"--level {comp}/{ts} --environment {envName} --clicast-args -u {unitName} -s {subpName} -t {tcName} EXecute Run --verbose"
+                print (manageCmd)
+                self.manageWait.exec_manage_command(manageCmd)
+
+        return any_rerun
 
     def generateIndexHtml(self):
         if not checkVectorCASTVersion(21):
@@ -324,7 +340,7 @@ class VectorCASTExecute(object):
         else:
             self.useStartLine = False
 
-        self.failed_count, self.passed_count = generate_results.buildReports(
+        self.failed_count, self.passed_count, self.failed_tc_list = generate_results.buildReports(
                 FullManageProjectName = self.FullMP,
                 level =self.level,
                 envName = self.environment,
@@ -337,7 +353,24 @@ class VectorCASTExecute(object):
                 use_ci = self.ci,
                 xml_data_dir = self.xml_data_dir,
                 useStartLine = self.useStartLine)
-
+                
+        if self.rerun_failed_tc and self.failed_tc_list:
+            any_rerun = self.rerun_failed_testcases()
+            if any_rerun:
+                self.failed_count, self.passed_count, self.failed_tc_list = generate_results.buildReports(
+                        FullManageProjectName = self.FullMP,
+                        level =self.level,
+                        envName = self.environment,
+                        generate_individual_reports = True,
+                        timing = self.timing,
+                        cbtDict = None,
+                        use_archive_extract = False,
+                        report_only_failures = False,
+                        no_full_report = False,
+                        use_ci = self.ci,
+                        xml_data_dir = self.xml_data_dir,
+                        useStartLine = self.useStartLine)
+            
         # calculate the failed percentage
         if (self.failed_count + self.passed_count > 0):
             self.failed_pct = 100 * self.failed_count/ (self.failed_count + self.passed_count)
@@ -557,6 +590,7 @@ if __name__ == '__main__':
     actionGroup = parser.add_argument_group('Script Actions', 'Options for the main tasks')
     actionGroup.add_argument('--build-execute', help='Builds and exeuctes the VectorCAST Project', action="store_true", default = False)
     actionGroup.add_argument("--setup", default="", help="Path to setup_env.bat/.sh (optional)")
+    actionGroup.add_argument("--rerun_failed_tc", help="Automatically re-run failed test cases", action="store_true", default = False)
 
     parser_specify = actionGroup.add_mutually_exclusive_group()
     parser_specify.add_argument('--build',       help='Only builds the VectorCAST Project', action="store_true", default = False)

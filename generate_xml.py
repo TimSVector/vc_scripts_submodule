@@ -645,6 +645,7 @@ class GenerateXml(BaseGenerateXml):
         unit_path = os.path.join(build_dir,env + '.vce')
         self.failed_count = 0
         self.passed_count = 0
+        self.failed_tc = []
         self.useStartLine = False
         self.noResults = False
         self.report_failed_only = False
@@ -683,7 +684,8 @@ class GenerateXml(BaseGenerateXml):
         self.api.commit = dummy
         self.failed_count = 0
         self.passed_count = 0
-
+        self.failed_tc = []
+        
 #
 # GenerateXml - add any compound tests to the unit report
 #
@@ -726,6 +728,7 @@ class GenerateXml(BaseGenerateXml):
                                 pass_fail_rerun =  ": Passed"
                             else:
                                 pass_fail_rerun =  ": Failed"
+                                self.failed_tc.append([self.compiler, self.testsuite, self.env, st.name, "SystemTest", "SystemTest", "EXEC_SUCCESS_FAIL"])
 
                             level = env.compiler.name + "/" + env.testsuite.name + "/" + env.name
                             if self.verbose:
@@ -814,6 +817,7 @@ class GenerateXml(BaseGenerateXml):
                         failed += 1
                         errors += 1
                         self.failed_count += 1
+
         api.close()
 
         data =  "<?xml version=\"1.0\" encoding=\"{}\"?>\n".format(self.encFmt)
@@ -834,10 +838,10 @@ class GenerateXml(BaseGenerateXml):
         for tc in self.api.TestCase.all():
             if (not tc.for_compound_only or tc.testcase_status == "TCR_STRICT_IMPORT_FAILED") and not self.isTcPlaceHolder(tc):
                 if not tc.passed:
-                    self.failed_count += 1
-                    failed += 1
-                    if tc.execution_status != "EXEC_SUCCESS_FAIL ":
-                        errors += 1
+                    self.failed_count += 1    
+                    self.failed_tc.append([self.compiler, self.testsuite, self.env, tc.name, tc.unit_display_name, tc.function.name, tc.testcase_status])
+                    failed += 1                
+                    errors += 1
                 else:
                     success += 1
                     self.passed_count += 1
@@ -1022,7 +1026,7 @@ class GenerateXml(BaseGenerateXml):
                 whyFail += "Control flow failure. "
                 expectedResultsFailure = "Control flow values"
 
-            if tc.history.summary.expected_total:
+            if not isSystemTest and tc.history.summary.expected_total:
                 whyFail += "Expected values failure. "
                 if len(expectedResultsFailure) > 0:
                     expectedResultsFailure += " and "

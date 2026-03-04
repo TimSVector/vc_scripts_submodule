@@ -204,7 +204,6 @@ def delete_file(filename):
         os.remove(filename)
         
 def genDataApiReports(FullManageProjectName, entry, use_ci, xml_data_dir):
-
     global print_exc
     
     xml_file = None
@@ -247,11 +246,12 @@ def genDataApiReports(FullManageProjectName, entry, use_ci, xml_data_dir):
     try:       
         failed_count = xml_file.failed_count
         passed_count = xml_file.passed_count
+        failed_tc    = xml_file.failed_tc
         del xml_file 
-        return failed_count, passed_count
+        return failed_count, passed_count, failed_tc
     except:
         traceback.print_exc()
-        return 0, 0
+        return 0, 0, None
 
 def generateCoverReport(path, env, level ):
 
@@ -331,13 +331,15 @@ def generateIndividualReports(entry, envName):
 def useNewAPI(FullManageProjectName, manageEnvs, level, envName, use_ci, xml_data_dir = "xml_data"):
     failed_count = 0 
     passed_count = 0 
+    failed_tc = []
 
     for currentEnv in manageEnvs:
 
         if envName == None:
-            fc, pc = genDataApiReports(FullManageProjectName, manageEnvs[currentEnv], use_ci, xml_data_dir)
+            fc, pc, ftc = genDataApiReports(FullManageProjectName, manageEnvs[currentEnv], use_ci, xml_data_dir)
             failed_count += fc
             passed_count += pc
+            failed_tc    += ftc
             
             generateIndividualReports(manageEnvs[currentEnv], envName)
             
@@ -348,15 +350,17 @@ def useNewAPI(FullManageProjectName, manageEnvs, level, envName, use_ci, xml_dat
                 level =  env_level
             
             if env_level.upper() == level.upper():
-                fc, pc = genDataApiReports(FullManageProjectName, manageEnvs[currentEnv], use_ci, xml_data_dir)
+                fc, pc, ftc = genDataApiReports(FullManageProjectName, manageEnvs[currentEnv], use_ci, xml_data_dir)
                 failed_count += fc
                 passed_count += pc
+                failed_tc    += ftc
+
                 generateIndividualReports(manageEnvs[currentEnv], envName)
         
     with open("unit_test_fail_count.txt","wb") as fd:
         fd.write(str(failed_count).encode(encFmt,'replace'))
     
-    return failed_count, passed_count
+    return failed_count, passed_count, failed_tc
 
 
 # build the Test Case Management Report for Manage Project
@@ -434,6 +438,7 @@ def buildReports(FullManageProjectName = None,
     
     failed_count = 0
     passed_count = 0
+    failed_tc = []
     if timing:
         print("Cleanup: " + str(time.time()))
     if useNewReport:
@@ -446,9 +451,11 @@ def buildReports(FullManageProjectName = None,
         if timing:
             print("Using DataAPI for reporting")
             print("Get Info: " + str(time.time()))
-        fc, pc = useNewAPI(FullManageProjectName, manageEnvs, level, envName, use_ci = use_ci, xml_data_dir=xml_data_dir)
+        fc, pc, ftc = useNewAPI(FullManageProjectName, manageEnvs, level, envName, use_ci = use_ci, xml_data_dir=xml_data_dir)
         failed_count += fc
         passed_count += pc
+        failed_tc += ftc
+        
         if timing:
             print("XML and Individual reports: " + str(time.time()))
 
@@ -464,7 +471,7 @@ def buildReports(FullManageProjectName = None,
     if timing:
         print("Complete: " + str(time.time()))
         
-    return failed_count, passed_count
+    return failed_count, passed_count, failed_tc
         
 if __name__ == '__main__':
 
