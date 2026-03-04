@@ -210,27 +210,21 @@ def processSystemTestResultsData(lines, encoding = 'utf-8'):
 def genQATestResults(mp, level = None, envName = None, verbose = False, encoding = 'utf-8'):
     passed_count = 0
     failed_count = 0
+    
+    report_name = os.path.basename(mp)[:-4] + "_system_tests_status.txt"
 
-    # try:
-        # from vector.apps.DataAPI.manage_models import SystemTest
-    # except:
-        # if verbose:
-            # print("No QA Environment that can be processed using --system-tests-status")
-        # return passed_count, failed_count
-
-    if level and envName:
-        nameLevel = level + "_" + envName
-        nameLevel = nameLevel.replace("\\","/").replace("/","_")
-        report_name = "{}_{}_system_tests_status.html".format(os.path.basename(mp)[:-4], nameLevel)
-    else:
-        report_name = os.path.basename(mp)[:-4] + "_system_tests_status.html"
-
+    print("[DEBUG] Processing " + report_name)
+    
     if os.path.exists(report_name):
+        print("[DEBUG] " + report_name + " exists")
         with open(report_name,"rb") as fd:
             raw = fd.read()
             out = raw.decode(encoding, 'replace')
                             
         passed_count, failed_count = processSystemTestResultsData(out.splitlines(), encoding)
+        
+    else:
+        print("[DEBUG] " + report_name + " missing")
         
     return passed_count, failed_count
         
