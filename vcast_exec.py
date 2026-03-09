@@ -442,11 +442,15 @@ class VectorCASTExecute(object):
                 report_name = env.compiler.name + "_" + env.testsuite.name + "_" + env.name + "_full_report.html"
                 report_name = os.path.join(self.output_dir, "management",report_name)
                 print("Creating {} HTML report for {} in {}".format(desc, env.name, report_name))
-            if isinstance(env.api, CoverApi):
-                env.api.report(report_type=forCover[report_type], formats=["HTML"], output_file=report_name)
-            else:
-                env.api.report(report_type=report_type, formats=["HTML"], output_file=report_name)
 
+            if env.api:
+                if isinstance(env.api, CoverApi):
+                    env.api.report(report_type=forCover[report_type], formats=["HTML"], output_file=report_name)
+                else:
+                    env.api.report(report_type=report_type, formats=["HTML"], output_file=report_name)
+            else:
+                print(f"{env.name} has a null env.api {env.api}")
+                
         vcproj.close()
 
     def generateTestCaseMgtRpt(self):
