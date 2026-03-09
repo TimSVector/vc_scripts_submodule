@@ -684,5 +684,6 @@ if __name__ == '__main__':
         sys.exit(vcExec.failed_count)
 
     if args.check_build_log:
-        sys.exit(check_build_log(vcExec.build_log_name))
+        if check_build_log(vcExec.build_log_name) == 2:
+            sys.exit(2)
 
