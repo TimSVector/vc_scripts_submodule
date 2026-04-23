@@ -34,21 +34,25 @@ import glob
 import subprocess
 import time
 import traceback
-
-import getjobs
-
 from managewait import ManageWait
+import generate_qa_results_xml
+using_new_reports = False
+legacy = False
 try:
     from vector.apps.ReportBuilder.custom_report import CustomReport
     try:
         from vector.apps.DataAPI.unit_test_api import UnitTestApi
     except:
         from vector.apps.DataAPI.api import Api as UnitTestApi
+    using_new_reports = True
 except:
     pass
-from vector.enums import ENVIRONMENT_STATUS_TYPE_T
+    
 
-from vcast_utils import dump, getVectorCASTEncoding
+try:
+    from vector.apps.DataAPI.vcproject_api import VCProjectApi
+except:
+    pass
 
 encFmt = getVectorCASTEncoding()
 
@@ -57,11 +61,44 @@ global verbose
 global print_exc
 global wait_time
 global wait_loops
+verbose = False
+print_exc = False
+need_fixup = False
 wait_time = 30
 wait_loops = 1
 
-verbose = False
-print_exc = True
+import getjobs
+
+def skipReporting(build_dir, skipReportsForSkippedEnvs, cbtDict):
+
+    import hashlib 
+
+    ## use hash code instead of final directory name as regression scripts can have overlapping final directory names
+    
+    build_dir_4hash = build_dir.upper()
+    build_dir_4hash = "/".join(build_dir_4hash.split("/")[-2:])
+    
+    # Unicode-objects must be encoded before hashing in Python 3
+    if sys.version_info[0] >= 3:
+        build_dir_4hash = build_dir_4hash.encode('utf-8')
+
+    hashCode = hashlib.md5(build_dir_4hash).hexdigest()
+    
+    # skip report gen for skipped environments 
+    if skipReportsForSkippedEnvs and cbtDict:
+        if hashCode not in cbtDict.keys():
+            if verbose:
+                print("skipping report because hash not round in cbtdict")
+
+            return True
+        else:
+            c,i,s = cbtDict[hashCode]
+            if len(c)==0 and len(i)==0 and len(s)==0:
+                if verbose:
+                    print("skipping report because c,i,s are all 0 size")
+                return True
+    return False
+
 enabledEnvironmentArray = []
 
 def getEnabledEnvironments(MPname):
@@ -70,7 +107,11 @@ def getEnabledEnvironments(MPname):
     for line in output.split("\n"):
         if line.strip():
             # type being system or unit test
-            compiler, testsuite, environment = line.split()
+            try:
+                compiler, testsuite, environment = line.split()
+            except:
+                compiler, testsuite, environment, source, machine = line.split()
+                
             enabledEnvironmentArray.append([compiler, testsuite, environment])
                        
 def environmentEnabled(comp,ts,env):
@@ -91,26 +132,17 @@ def runManageWithWait(command_line, silent=False):
 # Determine if this version of VectorCAST supports new-style reporting/Data API
 def checkUseNewReportsAndAPI():
     if os.environ.get("VCAST_REPORT_ENGINE", "") == "LEGACY":
-        # Using legacy reporting with new reports - fall back to parsing html report
+        # The execution plugin will ignore this value, but warn user.
         if verbose:
             print("VectorCAST/Execution ignoring LEGACY VCAST_REPORT_ENGINE.")
 
-    # Look for existence of file that only exists in distribution with the new reports
-    check_file = os.path.join(os.environ.get('VECTORCAST_DIR'),
-                             "python",
-                             "vector",
-                             "apps",
-                             "ReportBuilder",
-                             "reports",
-                             "full_report.pyc")
-    if os.path.isfile(check_file):
-        if verbose:
-            print("Using VectorCAST with new style reporting. Use Data API for Jenkins reports.")
-        return True
-    else:
-        if verbose:
-            print("Using VectorCAST without new style reporting. Use VectorCAST reports for Jenkins reports.")
-        return False
+    if verbose:
+        if using_new_reports:
+            print("Using VectorCAST with new style reporting. Use Data API for CI reports.")
+        else:
+            print("Using VectorCAST without new style reporting. Use VectorCAST reports for CI reports.")
+
+    return using_new_reports
 
 # Read the Manage project file to determine its version
 # File has already been checked for existence
@@ -119,46 +151,24 @@ def readManageVersion(ManageFile):
     if os.path.isfile(ManageFile + ".vcm"):
         ManageFile = ManageFile + '.vcm'
         
-    py2 = sys.version_info[0] < 3
+    with open(ManageFile, 'rb') as projFile:
+        for raw_line in projFile:                      # iterates lazily, line by line
+            line = raw_line.decode(encFmt, "replace")  # decode each line
+            if 'version' in line and 'project' in line:
+                version = int(re.findall(r'\d+', line)[0])
+                break
 
-    with open(ManageFile, "rb") as projFile:
-        for raw_line in projFile:
-            # --- Normalize line to text (unicode in Py3, unicode or str in Py2) ---
-            if py2:
-                # In Py2, raw_line is a str (byte string)
-                try:
-                    line = raw_line.decode(encFmt, "replace")
-                except Exception:
-                    line = raw_line.decode("utf-8", "replace")
-            else:
-                # In Py3, raw_line is bytes
-                if isinstance(raw_line, bytes):
-                    try:
-                        line = raw_line.decode(encFmt, "replace")
-                    except Exception:
-                        line = raw_line.decode("utf-8", "replace")
-                else:
-                    line = raw_line
-
-            # --- Look for version/project keywords ---
-            if "version" in line and "project" in line:
-                match = re.search(r"\d+", line)
-                if match:
-                    version = int(match.group())
-                    break
-        
     if verbose:
-        print("Version of Manage project file = %d" % version)
+        print("Version of VectorCAST project file = %d" % version)
         print("(Levels change in version 17 (*maybe) and above)")
-        
     return version
 
 # Call manage to get the mapping of Envs to Directory etc.
-def getManageEnvs(FullManageProjectName, use_ci = ""):
+def getManageEnvs(FullManageProjectName):
     manageEnvs = {}
 
     cmd_prefix = os.environ.get('VECTORCAST_DIR') + os.sep
-    callStr = cmd_prefix + "manage --project " + FullManageProjectName + " " + use_ci + " --build-directory-name"
+    callStr = cmd_prefix + "manage --project " + FullManageProjectName + " --build-directory-name"
     out_mgt = runManageWithWait(callStr, silent=True)
     if verbose:
         print(out_mgt)
@@ -203,11 +213,8 @@ def delete_file(filename):
     if os.path.exists(filename):
         os.remove(filename)
         
-def genDataApiReports(FullManageProjectName, entry, use_ci, xml_data_dir):
-
-    global print_exc
-    
-    xml_file = None
+def genDataApiReports(FullManageProjectName, entry, cbtDict, generate_exec_rpt_each_testcase, use_archive_extract, report_only_failures, useStartLine, teePrint, use_cte):
+    xml_file = ""
     
     try:
         from generate_xml import GenerateXml
@@ -230,21 +237,39 @@ def genDataApiReports(FullManageProjectName, entry, use_ci, xml_data_dir):
                                xmlUnitReportName,
                                jenkins_link,
                                jobNameDotted, 
-                               verbose,
-                               use_ci)
-                           
+                               verbose, 
+                               cbtDict,
+                               generate_exec_rpt_each_testcase,
+                               use_archive_extract,
+                               report_only_failures,
+                               print_exc,
+                               useStartLine,
+                               teePrint,
+                               use_cte)
+                               
         if xml_file.api != None:
             if verbose:
-                print("  Generate Jenkins testcase report: {}".format(xmlUnitReportName))
+                print("   Generate CI testcase report: {}".format(xmlUnitReportName))
             xml_file.generate_unit()
+
+            if verbose:
+                print("   Generate Jenkins coverage report: {}".format(xmlCoverReportName))
+            xml_file.generate_cover()
+        else:
+            print("   Skipping environment: " + jobNameDotted)
+            print("\n\n")
+            print ("******************************************************")
+            print ("** Environment's that only use imported results     **")
+            print ("** will not properly generate metrics with this     **")
+            print ("** version of VectorCAST.                           **")
+            print ("******************************************************")
+            print("\n\n")
 
     
     except Exception as e:
         print("ERROR: failed to generate XML reports using vpython and the Data API for ", entry["compiler"] + "_" + entry["testsuite"] + "_" + entry["env"], "in directory", entry["build_dir"])
-        if True:
-            traceback.print_exc()
     
-    try:       
+    try:  
         failed_count = xml_file.failed_count
         passed_count = xml_file.passed_count
         del xml_file 
@@ -252,64 +277,87 @@ def genDataApiReports(FullManageProjectName, entry, use_ci, xml_data_dir):
     except:
         traceback.print_exc()
         return 0, 0
+        
+        
+def fixup_css(report_name):
+    global need_fixup
+    # Needed for VC19 and VC19 SP1.
+    # From VC19 SP2 onwards a new option VCAST_RPTS_SELF_CONTAINED is used instead
+    
+    if not need_fixup:
+        return
+
+    with open(report_name,"rb") as fd:
+        data = fd.read().decode('utf-8','replace')
+
+    #fix up inline CSS because of Content Security Policy violation
+    newData = data[: data.index("<style>")-1] +  """
+    <link rel="stylesheet" href="vector_style.css">
+    """ + data[data.index("</style>")+8:]
+    
+    #fix up style directive because of Content Security Policy violation
+    newData = newData.replace("<div class='event bs-callout' style=\"position: relative\">","<div class='event bs-callout relative'>")
+    
+    #fixup the inline VectorCAST image because of Content Security Policy violation
+    regex_str = r"<img alt=\"Vector\".*"
+    newData =  re.sub(regex_str,"<img alt=\"Vector\" src=\"vectorcast.png\"/>",newData)
+    
+    with open(report_name, "wb") as fd:
+        fd.write(newData.encode('utf-8','replace'))
+   
+    workspace = os.getenv("WORKSPACE")
+    if workspace is None:
+        workspace = os.getcwd()
+
+    vc_scripts = os.path.join(workspace,"vc_scripts")
+    
+    shutil.copy(os.path.join(vc_scripts,"vector_style.css"), "management/vector_style.css")
+    shutil.copy(os.path.join(vc_scripts,"vectorcast.png"), "management/vectorcast.png")
 
 def generateCoverReport(path, env, level ):
 
-    from vector.apps.ReportBuilder.custom_report import CustomReport
+    def _dummy(*args, **kwargs):
+        return True
+        
     from vector.apps.DataAPI.cover_api import CoverApi
 
-    try:
-        api=CoverApi(path)
-    except: 
-        print("CR:    Skipping environment: "+ env)
-        print("CR:       *" + env + " DataAPI is invalid")
-        return 
-        
-    try:
-        if api.environment.status != ENVIRONMENT_STATUS_TYPE_T.NORMAL:
-            print("CR:    Skipping environment: "+ env)
-            print("CR:       *" + env + " status is not NORMAL")
-            return
-    except:
-        pass        
-        
-    report_name = "html_reports/" + level + "_" + env + ".html"
+    api=CoverApi(path)
 
+    report_name = "management/" + level + "_" + env + ".html"
+    
     try:
-        CustomReport.report_from_api(api, report_type="Demo", formats=["HTML"], output_file=report_name, sections=["CUSTOM_HEADER", "REPORT_TITLE", "TABLE_OF_CONTENTS", "CONFIG_DATA", "METRICS", "MCDC_TABLES",  "AGGREGATE_COVERAGE", "CUSTOM_FOOTER"])
+        try:
+            api.commit = _dummy
+            api.report(report_type="AGGREGATE_REPORT", formats=["HTML"], output_file=report_name)
+        except:
+            CustomReport.report_from_api(api, report_type="Demo", formats=["HTML"], output_file=report_name, sections=["CUSTOM_HEADER", "REPORT_TITLE", "TABLE_OF_CONTENTS", "CONFIG_DATA", "METRICS", "MCDC_TABLES",  "AGGREGATE_COVERAGE", "CUSTOM_FOOTER"])
 
+        fixup_css(report_name)
+        
     except Exception as e:
-        print("CR:    *Problem generating custom report for " + env + ": ")
-        if print_exc:
-            traceback.print_exc()
+        build_dir = path.replace("\\","/")
+        build_dir = build_dir.rsplit("/",1)[0]
+
+        print(traceback.format_exc(), print_exc, level.split("_")[0] , level.split("_")[2], env, build_dir)
 
 def generateUTReport(path, env, level): 
     global verbose
 
     def _dummy(*args, **kwargs):
         return True
+    report_name = "management/" + level + "_" + env + ".html"
 
-    try:
-        api=UnitTestApi(path)
-    except: 
-        print("UTR:   Skipping environment: "+ env)    
-        print("UTR:       *" + env + "'s DataAPI is invalid")
-        return 
-        
-    if api.environment.status != ENVIRONMENT_STATUS_TYPE_T.NORMAL:
-        print("UTR:    Skipping environment: "+ env)    
-        print("UTR:       *" + env + " status is not NORMAL")
-        return
-        
-    report_name = "html_reports/" + level + "_" + env + ".html"
+    api=UnitTestApi(path)
     try:
         api.commit = _dummy
         api.report(report_type="FULL_REPORT", formats=["HTML"], output_file=report_name)
+        fixup_css(report_name)
     except Exception as e:
-        print("UTR:    *Problem generating custom report for " + env + ".")
-        if print_exc:
-            traceback.print_exc()
+        build_dir = path.replace("\\","/")
+        build_dir = build_dir.rsplit("/",1)[0]
 
+        print(traceback.format_exc(), print_exc, level.split("_")[0] , level.split("_")[2], env, build_dir)
+        
 def generateIndividualReports(entry, envName):
     global verbose
 
@@ -327,63 +375,126 @@ def generateIndividualReports(entry, envName):
         elif os.path.exists(unit_path):
             generateUTReport(unit_path , env, level)
 
+def useManageAPI(FullManageProjectName, cbtDict, generate_exec_rpt_each_testcase, use_archive_extract, report_only_failures, no_full_report, useStartLine, teePrint, use_cte):
+    global verbose
 
-def useNewAPI(FullManageProjectName, manageEnvs, level, envName, use_ci, xml_data_dir = "xml_data"):
+    print("Using VCProjectApi")
+    
+    xml_file = ""
+    
+    try:
+        from generate_xml import GenerateManageXml
+
+        xml_file = GenerateManageXml(FullManageProjectName, 
+                               verbose, 
+                               cbtDict,
+                               generate_exec_rpt_each_testcase,
+                               use_archive_extract,
+                               report_only_failures,
+                               no_full_report,
+                               print_exc,
+                               useStartLine, teePrint, use_cte)
+                               
+        if xml_file.api != None:
+            xml_file.generate_testresults()
+            xml_file.generate_cover()
+        else:
+            print("   Skipping environment: " + jobNameDotted)
+            print("\n\n")
+            print ("******************************************************")
+            print ("** Environment's that only use imported results     **")
+            print ("** will not properly generate metrics with this     **")
+            print ("** version of VectorCAST.                           **")
+            print ("******************************************************")
+            print("\n\n")
+    
+    except Exception as e:
+        parse_traceback.parse(traceback.format_exc(), print_exc)
+        #traceback.print_exc()
+
+
+    try:       
+        return xml_file.passed_count, xml_file.failed_count
+    except:
+        return 0, 0
+
+
+def useNewAPI(FullManageProjectName, manageEnvs, level, envName, cbtDict, generate_exec_rpt_each_testcase, use_archive_extract, report_only_failures, no_full_report, useStartLine, teePrint, use_cte):
+
     failed_count = 0 
-    passed_count = 0 
-
+    passed_count = 0
+    
+    print("Using DataAPI per environment")
+        
     for currentEnv in manageEnvs:
+        if skipReporting(manageEnvs[currentEnv]["build_dir"], use_archive_extract, cbtDict):
+            print("   No Change for " + currentEnv + ". Skipping reporting.")
+            continue 
 
         if envName == None:
-            fc, pc = genDataApiReports(FullManageProjectName, manageEnvs[currentEnv], use_ci, xml_data_dir)
-            failed_count += fc
+            pc, fc = genDataApiReports(FullManageProjectName, manageEnvs[currentEnv],  cbtDict, generate_exec_rpt_each_testcase,use_archive_extract, report_only_failures, useStartLine, teePrint, use_cte)
             passed_count += pc
+            failed_count += fc
             
+            if no_full_report:
+                continue                
+                
             generateIndividualReports(manageEnvs[currentEnv], envName)
             
         elif manageEnvs[currentEnv]["env"].upper() == envName.upper(): 
             env_level = manageEnvs[currentEnv]["compiler"] + "/" + manageEnvs[currentEnv]["testsuite"]
             
-            if level is None:
-                level =  env_level
-            
-            if env_level.upper() == level.upper():
-                fc, pc = genDataApiReports(FullManageProjectName, manageEnvs[currentEnv], use_ci, xml_data_dir)
-                failed_count += fc
+            if level == None or env_level.upper() == level.upper():
+                pc, fc = genDataApiReports(FullManageProjectName, manageEnvs[currentEnv], cbtDict, generate_exec_rpt_each_testcase,use_archive_extract, report_only_failures, useStartLine, teePrint, use_cte)
                 passed_count += pc
-                generateIndividualReports(manageEnvs[currentEnv], envName)
-        
-    with open("unit_test_fail_count.txt","wb") as fd:
-        fd.write(str(failed_count).encode(encFmt,'replace'))
-    
-    return failed_count, passed_count
+                failed_count += fc
+                
+                if no_full_report:
+                    continue                
 
+                generateIndividualReports(manageEnvs[currentEnv], envName)
+                
+    return passed_count, failed_count
+
+def cleanupDirectory(path, teePrint):
+
+    # if the path exists, try to delete all file in it
+    if os.path.isdir(path):
+        shutil.rmtree(path)
+    os.mkdir(path)
+
+def cleanupOldBuilds(teePrint):
+    for path in ["xml_data","management","execution"]:
+        cleanupDirectory(path, teePrint)
 
 # build the Test Case Management Report for Manage Project
 # envName and level only supplied when doing reports for a sub-project
 # of a multi-job
-def buildReports(FullManageProjectName = None, 
-        level = None, 
-        envName = None, 
-        generate_individual_reports = True, 
-        timing = False, 
-        cbtDict = None, 
-        use_archive_extract = False, 
-        report_only_failures = False, 
-        no_full_report = False, 
-        use_ci = "", 
-        xml_data_dir = "xml_data", 
-        useStartLine = False):
-
+def buildReports(FullManageProjectName = None,
+    level = None,
+    envName = None,
+    generate_individual_reports = True,
+    timing = False,
+    cbtDict = None,
+    use_archive_extract = False,
+    report_only_failures = False,
+    no_full_report = False,
+    use_ci = "",
+    xml_data_dir = "xml_data",
+    useStartLine = False,
+    use_cte = False):
+        
     if timing:
-        print("Start: " + str(time.time()))
+        print("Start report generation: " + str(time.time()))
         
     saved_level = level
     saved_envName = envName
+   
+    getEnabledEnvironments(FullManageProjectName)
     
-    # make sure the project exists
+   # make sure the project exists
     if not os.path.isfile(FullManageProjectName) and not os.path.isfile(FullManageProjectName + ".vcm"):
-        raise IOError(FullManageProjectName + ' does not exist')
+        raise FileNotFoundError(FullManageProjectName + ' does not exist')
         return
         
     manageProjectName = os.path.splitext(os.path.basename(FullManageProjectName))[0]
@@ -392,65 +503,64 @@ def buildReports(FullManageProjectName = None,
     useNewReport = checkUseNewReportsAndAPI()
     manageEnvs = {}
 
-    getEnabledEnvironments(FullManageProjectName)
-
     if timing:
         print("Version Check: " + str(time.time()))
 
-    # cleaning up old builds
-    for path in [os.path.join(xml_data_dir,"junit"),"html_reports"]:
-        # if the path exists, try to delete it
-        if os.path.isdir(path):
-            try:
-                shutil.rmtree(path)
-            except:
-                # if there was an error removing the directory...delete all the files
-                print("Error removing directory: " + path)
-                for file in glob.glob(path + "/*.*"):
-                    try:
-                        os.remove(file);
-                    except:
-                        print("Error removing file after failed to remove directory: " + path + "/" + file)
-                pass
-                
-        # we should either have an empty directory or no directory
-        if not os.path.isdir(path):
-            try:
-                os.makedirs(path)
-            except:
-                print("Error creating directory: " + path)
             
+    cleanupOldBuilds(teePrint)
+
     for file in glob.glob("*.csv"):
         try:
             os.remove(file);
             if verbose:
                 print("Removing file: " + file)
         except Exception as e:
-            print("Error removing " + file)
-            print(e)
-    
-    
-    ### Using new data API - 2019 and beyond
-    
+            print("   *INFO: File System Error removing " + file + ". Check console for environment build/execution errors")
+            if print_exc:  traceback.print_exc()
+   
     failed_count = 0
     passed_count = 0
+    
+    ### Using new data API - 2019 and beyond
     if timing:
         print("Cleanup: " + str(time.time()))
-    if useNewReport:
-
+    if useNewReport and not legacy:
         try:
-            shutil.rmtree("execution") 
+            vcproj = VCProjectApi(FullManageProjectName)
+            tool_version = vcproj.tool_version
+            if tool_version.startswith("20"):
+                use_manage_api = False
+            else:
+                use_manage_api = True
+            vcproj.close()
         except:
-            pass
-        manageEnvs = getManageEnvs(FullManageProjectName, use_ci)
-        if timing:
-            print("Using DataAPI for reporting")
-            print("Get Info: " + str(time.time()))
-        fc, pc = useNewAPI(FullManageProjectName, manageEnvs, level, envName, use_ci = use_ci, xml_data_dir=xml_data_dir)
-        failed_count += fc
-        passed_count += pc
+            use_manage_api = False
+            
+        if use_manage_api:
+            passed_count, failed_count = useManageAPI(FullManageProjectName, cbtDict, generate_individual_reports, 
+                    use_archive_extract, report_only_failures, no_full_report,
+                    useStartLine, teePrint, use_cte)
+
+        else:
+                
+            manageEnvs = getManageEnvs(FullManageProjectName)
+            if timing:
+                print("Using DataAPI for reporting")
+                print("Get Info: " + str(time.time()))
+            passed_count, failed_count = useNewAPI(FullManageProjectName, 
+                manageEnvs, level, envName, cbtDict, generate_individual_reports, 
+                use_archive_extract, report_only_failures, no_full_report,
+                useStartLine, teePrint, use_cte)
+                
         if timing:
             print("XML and Individual reports: " + str(time.time()))
+
+        with open("unit_test_fail_count.txt", "wb") as fd:
+            fd.write(str(failed_count).encode(encFmt, "replace"))
+
+        with open("unit_test_passfail_count.txt", "wb") as fd:
+            text = "{} {}".format(passed_count, failed_count)
+            fd.write(text.encode(encFmt, "replace"))
 
     ### NOT Using new data API        
     else:
@@ -462,71 +572,94 @@ def buildReports(FullManageProjectName = None,
             
 
     if timing:
-        print("Complete: " + str(time.time()))
+        print("Complete report generate: " + str(time.time()))
         
     return failed_count, passed_count
+
         
 if __name__ == '__main__':
 
     parser = argparse.ArgumentParser()
-    parser.add_argument('ManageProject', help='Manager Project Name')
-    parser.add_argument('-v', '--verbose',   help='Enable verbose output', action="store_true")
-    parser.add_argument('-l', '--level',   help='Environment Name if only doing single environment.  Should be in the form of level/env')
-    parser.add_argument('-e', '--environment',   help='Environment Name if only doing single environment.  Should be in the form of level/env')
-    parser.add_argument('-g', '--dont-generate-individual-reports',   help='Don\'t Generated Individual Reports (below 2019 - this just controls execution report generate, 2019 and later - no individual reports will be generated',  action="store_true")
-    parser.add_argument('--wait_time',   help='Time (in seconds) to wait between execution attempts', type=int, default=30)
-    parser.add_argument('--wait_loops',   help='Number of times to retry execution', type=int, default=1)
-    parser.add_argument('--timing',   help='Display timing information for report generation', action="store_true")
-    parser.add_argument('--cobertura',   help='Output coverage results in Cobertura format', action="store_true", default=False)
-    parser.add_argument('--api',   help='Unused', type=int)
-    parser.add_argument('--final',   help='Write Final JUnit Test Results file',  action="store_true")
-    parser.add_argument('--gitlab',   help='Generate Cobertura in a format GitLab can use', action="store_true", default=True)
-    parser.add_argument('--ci',                help='Use continuous integration licenses', action="store_true", default=False)
-    parser.add_argument('--output_dir', help='Set the base directory of the xml_data directory. Default is the workspace directory', default = "xml_data")
-    parser.add_argument('--azure',  help='Build using Azure DevOps', action="store_true", default = False)
+    parser.add_argument('ManageProject',                    help='Manager Project Name')
+    parser.add_argument('-v', '--verbose',                  help='Enable verbose output', action="store_true")
+    parser.add_argument('-l', '--level',                    help='Level for doing single environment.  Should be in the form of compiler/testsuite')
+    parser.add_argument('-e', '--environment',              help='Environment Name if only doing single environment')
+    parser.add_argument('-g', '--dont-generate-individual-reports',   
+                                                            help='Don\'t Generated Individual Reports. Below VC2019 - this just controls execution report generate. VC2019 and later - execution reports for each testcase won\'t be generated',  action="store_true", default=False)
+    parser.add_argument('--wait_time',                      help='Time (in seconds) to wait between execution attempts', type=int, default=30)
+    parser.add_argument('--wait_loops',                     help='Number of times to retry execution', type=int, default=1)
+    parser.add_argument('--timing',                         help='Display timing information for report generation', action="store_true", default = False)
+    parser.add_argument('--buildlog',                       help='Build Log for CBT Statitics', default = None)
+    
+    ## Hidden because they are specific to customer need or testing
+    parser.add_argument('--junit',                          help=argparse.SUPPRESS, action="store_true")
+    parser.add_argument('--junit_use_cte_for_classname',    help=argparse.SUPPRESS, action="store_true", dest="use_cte")
+    parser.add_argument('--print_exc',                      help=argparse.SUPPRESS, action="store_true")
+    parser.add_argument('--api',                            help=argparse.SUPPRESS, type=int)
+    parser.add_argument('--use_archive_extract',            help=argparse.SUPPRESS, action="store_true", default = False)
+    parser.add_argument('--report_only_failures',           help=argparse.SUPPRESS, action="store_true", default = False)
+    parser.add_argument('--no_full_report',                 help=argparse.SUPPRESS, action="store_true", default = False)
+    parser.add_argument('--legacy',                         help=argparse.SUPPRESS, action="store_true", default = False)
 
     args = parser.parse_args()
     
-    try:
-        if "19.sp1" in open(os.path.join(os.environ['VECTORCAST_DIR'],"DATA/tools_version.txt").read()):
-            # custom report patch for SP1 problem - should be fixed in future release      
-            old_init = CustomReport._post_init
-            def new_init(self):
-                old_init(self)
-                self.context['report']['use_all_testcases'] = True
-            CustomReport._post_init = new_init
-    except:
-        pass
+    if args.use_archive_extract and (not args.buildlog or not os.path.exists(args.buildlog)):
+        print("Must have a valid --buildlog file to use --use_archive_extract")
+        print("The option use_archive_extract is disabled")
+        args.use_archive_extract = False
     
+    legacy = args.legacy
+    timing = args.timing
+    
+    if timing:
+        print("Start: " + str(time.time()))
+        
+    if legacy and sys.version_info[0] >= 3:
+        print ("Legacy mode testing not support with Python3 (VectorCAST 2021 and above)")
+        sys.exit(-1)
+        
+
+    
+
+    generate_individual_reports = not args.dont_generate_individual_reports
+
     if args.verbose:
         verbose = True
+        
+    if args.print_exc or verbose:
+        print_exc = True
+        
     wait_time = args.wait_time
     wait_loops = args.wait_loops
 
-    if args.dont_generate_individual_reports:
-        dont_generate_individual_reports = False
-    else:
-        dont_generate_individual_reports = True
-
+    junit = True
+    cbtDict = None
     if args.timing:
         timing = True
     else:
         timing = False
-        
+
     # Used for pre VC19
     os.environ['VCAST_RPTS_PRETTY_PRINT_HTML'] = 'FALSE'
     # Used for VC19 SP2 onwards
     os.environ['VCAST_RPTS_SELF_CONTAINED'] = 'FALSE'
+    os.environ['VCAST_MANAGE_PROJECT_DIRECTORY'] = os.path.abspath(args.ManageProject).rsplit(".",1)[0]
     
-    if args.ci:
-        os.environ['VCAST_USE_CI_LICENSES'] = '1'
-        use_ci = " --ci "
-    else:
-        use_ci = ""
-
     xml_data_dir = args.output_dir
 
-    failed_count, passed_count = buildReports(args.ManageProject,args.level,args.environment,dont_generate_individual_reports, timing, use_ci, xml_data_dir)
+    failed_count, passed_count = buildReports(args.ManageProject,
+                args.level,
+                args.environment,
+                generate_individual_reports,
+                timing,
+                cbtDict,
+                args.use_archive_extract,
+                args.report_only_failures,
+                args.no_full_report,
+                use_ci = "",
+                xml_data_dir = xml_data_dir,
+                useStartLine = False,
+                use_cte = args.use_cte)
     
     if args.cobertura:
         for file in glob.glob(os.path.join(xml_data_dir,"cobertura","coverage_results_*.*")):
