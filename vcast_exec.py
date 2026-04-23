@@ -187,11 +187,13 @@ class VectorCASTExecute(object):
             self.useCI = ""
             self.ci = ""
 
+        self.importedResults = args.importedResults
+        
         if args.incremental:
             self.useCBT = "--incremental"
         else:
             self.useCBT = ""
-
+            
         self.useLevelEnv = False
         self.environment = None
         self.level = None
@@ -506,7 +508,10 @@ class VectorCASTExecute(object):
         self.manageWait.exec_manage_command ("--status")
         self.manageWait.exec_manage_command ("--force --release-locks")
         self.manageWait.exec_manage_command ("--config VCAST_CUSTOM_REPORT_FORMAT=HTML")
-
+        if self.importedResults:
+            self.manageWait.exec_manage_command (f"--force --import-result={self.importedResults}")
+            self.manageWait.exec_manage_command ("--status")
+        
         if self.useLevelEnv:
             output = "--output " + self.mpName + self.reportsName + "_rebuild.html"
         else:
@@ -568,6 +573,7 @@ if __name__ == '__main__':
     actionGroup = parser.add_argument_group('Script Actions', 'Options for the main tasks')
     actionGroup.add_argument('--build-execute', help='Builds and exeuctes the VectorCAST Project', action="store_true", default = False)
     actionGroup.add_argument("--setup", default="", help="Path to setup_env.bat/.sh (optional)")
+    actionGroup.add_argument('--use_imported_result', help='Use existing VCR file from repository for CBT via Imported Results', dest="importedResults", default = None)
 
     parser_specify = actionGroup.add_mutually_exclusive_group()
     parser_specify.add_argument('--build',       help='Only builds the VectorCAST Project', action="store_true", default = False)
@@ -590,14 +596,7 @@ if __name__ == '__main__':
     metricsGroup.add_argument('--exit_with_failed_comp', help='Returns failed if any of the functions have a Complexity (Vg) > value.',
                                nargs='?', default=10)
     metricsGroup.add_argument('--check_build_log', help='Checks build log for a list of error phrases. Returns failure if any are found.',
-                               action="store_true", default = False)
-
-    importedResultsGroup = parser.add_argument_group('Imported Results Selection', 'Options for Using Change Based Testing from Imported Results')
-    resultsSpecifics = importedResultsGroup.add_mutually_exclusive_group()
-
-    resultsSpecifics.add_argument('--use_local_imported_results', help='Use artifacts from last non-failing build for CBT Imported Results', action="store_true", dest="intResults", default = False)
-    resultsSpecifics.add_argument('--use_external_imported_results', help='Use artifacts from repository for CBT Imported Results', dest="extResults", default = None)
-    
+                               action="store_true", default = False)    
     reportGroup = parser.add_argument_group('Report Selection', 'VectorCAST Manage reports that can be generated')
     reportGroup.add_argument('--aggregate', help='Generate aggregate coverage report VectorCAST Project', action="store_true", default = False)
     reportGroup.add_argument('--metrics', help='Generate metrics reports for VectorCAST Project', action="store_true", default = False)
@@ -624,6 +623,10 @@ if __name__ == '__main__':
     actionGroup.add_argument('--version', help='Displays the version information', action="store_true", default = False)
 
     args = parser.parse_args()
+
+    if args.importedResults and not args.incremental:
+        print("[INFO] Calling conflict of --use_import_result and not --incremental")
+        print("[INFO] Calling it this way ignores --use_imported_result")
 
     if args.verbose:
         import sys, shlex

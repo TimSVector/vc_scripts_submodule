@@ -83,6 +83,7 @@ class BaseGenerateXml(object):
         self.verbose = verbose
         self.has_sfp_enabled = False
         self.print_exc = False
+        self.using_cover = False
 
         self.use_cte = use_cte
 
@@ -684,7 +685,7 @@ class BaseGenerateXml(object):
         try:
             cov_type = self.api.environment.coverage_type_text
         except Exception as e:
-            parse_traceback.parse(traceback.format_exc(), self.print_exc, self.compiler,  self.testsuite,  self.env,  self.build_dir)
+            print(traceback.format_exc(), self.print_exc, self.compiler,  self.testsuite,  self.env,  self.build_dir)
             return
 
         self._generate_cover(cov_type)
@@ -769,6 +770,7 @@ class GenerateManageXml (BaseGenerateXml):
         self.failed_count = 0
         self.passed_count = 0
         self.print_exc = print_exc
+        self.using_cover = True
 
         self.units = []
 
@@ -953,7 +955,7 @@ class GenerateManageXml (BaseGenerateXml):
                 self.fixupReport(report_name)
             except:
                 print("Error creating report " + report_name + ". Contact Vector Support")
-                parse_traceback.parse(traceback.format_exc(), self.verbose, self.compiler,  self.testsuite,  self.env,  self.build_dir)
+                print(traceback.format_exc(), self.verbose, self.compiler,  self.testsuite,  self.env,  self.build_dir)
 
     def runFullReport(self,comp,ts,env_name,report_name):
         try:
@@ -1168,10 +1170,11 @@ class GenerateXml(BaseGenerateXml):
         unit_path = os.path.join(build_dir,env + '.vce')
         if os.path.exists(cov_path):
             self.generate_system_test_status_report()
-
+            self.using_cover = True
             self.api = CoverApi(cov_path)
         elif os.path.exists(unit_path):
             self.api = UnitTestApi(unit_path)
+            self.using_cover = False
         else:
             self.api = None
             if verbose:
@@ -1630,7 +1633,7 @@ class GenerateXml(BaseGenerateXml):
             self.__print_test_case_was_skipped(tc.name, tc.passed)
             return [True, None, None]
         except Exception as e:
-            parse_traceback.parse(traceback.format_exc(), self.print_exc, self.compiler,  self.testsuite,  self.env,  self.build_dir)
+            print(traceback.format_exc(), self.print_exc, self.compiler,  self.testsuite,  self.env,  self.build_dir)
             if self.print_exc:
                 import json
                 print ("CBT Dictionary:\n{}".format(json.dumps(self.cbtDict, indent=2)))
@@ -1682,7 +1685,7 @@ class GenerateXml(BaseGenerateXml):
             os.remove(report_name)
         except:
             out = "No execution results found"
-            parse_traceback.parse(traceback.format_exc(), self.print_exc, self.compiler,  self.testsuite,  self.env,  self.build_dir)
+            print(traceback.format_exc(), self.print_exc, self.compiler,  self.testsuite,  self.env,  self.build_dir)
 
         return out
 

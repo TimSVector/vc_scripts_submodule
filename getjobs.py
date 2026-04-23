@@ -3,7 +3,6 @@ import subprocess
 import os
 import re
 import sys
-import tee_print
 import glob
 try:
     from vector.apps.DataAPI.vcproject_models import EnvironmentType
@@ -12,11 +11,11 @@ except:
 
 manageCMD=os.environ['VECTORCAST_DIR'] + "/manage"
 
-def printOutput(somethingPrinted, ManageProjectName, output, teePrint):
+def printOutput(somethingPrinted, ManageProjectName, output):
     if not somethingPrinted:
-        teePrint.teePrint ("No environments found in " + ManageProjectName + ". Please check configuration")
+        print ("No environments found in " + ManageProjectName + ". Please check configuration")
     else:
-        teePrint.teePrint(output)
+        print(output)
         
 def getBuildDirectory(compiler , testsuite , env_name, buildDirInfo):
     for line in buildDirInfo:
@@ -108,8 +107,7 @@ def printEnvInfoDataAPI(api, printData = True, printEnvType = False):
         output += "%s %s %s\n" % (env.compiler.name , env.testsuite.name , env.name)
    
     if printData:
-        with tee_print.TeePrint() as teePrint:
-            printOutput(somethingPrinted, api.vcm_file, output, teePrint)
+        printOutput(somethingPrinted, api.vcm_file, output)
             
     return output
     
@@ -230,8 +228,7 @@ def printEnvInfoNoDataAPI(ManageProjectName, printData = True, printEnvType = Fa
             somethingPrinted = True;
 
     if printData:
-        with tee_print.TeePrint() as teePrint:
-            printOutput(somethingPrinted, ManageProjectName, output, teePrint)
+        printOutput(somethingPrinted, ManageProjectName, output)
 
     return output
  

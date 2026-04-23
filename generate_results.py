@@ -53,6 +53,8 @@ try:
     from vector.apps.DataAPI.vcproject_api import VCProjectApi
 except:
     pass
+    
+from vcast_utils import dump, getVectorCASTEncoding
 
 encFmt = getVectorCASTEncoding()
 
@@ -213,7 +215,7 @@ def delete_file(filename):
     if os.path.exists(filename):
         os.remove(filename)
         
-def genDataApiReports(FullManageProjectName, entry, cbtDict, generate_exec_rpt_each_testcase, use_archive_extract, report_only_failures, useStartLine, teePrint, use_cte):
+def genDataApiReports(FullManageProjectName, entry, cbtDict, generate_exec_rpt_each_testcase, use_archive_extract, report_only_failures, useStartLine, use_cte):
     xml_file = ""
     
     try:
@@ -244,7 +246,6 @@ def genDataApiReports(FullManageProjectName, entry, cbtDict, generate_exec_rpt_e
                                report_only_failures,
                                print_exc,
                                useStartLine,
-                               teePrint,
                                use_cte)
                                
         if xml_file.api != None:
@@ -375,7 +376,7 @@ def generateIndividualReports(entry, envName):
         elif os.path.exists(unit_path):
             generateUTReport(unit_path , env, level)
 
-def useManageAPI(FullManageProjectName, cbtDict, generate_exec_rpt_each_testcase, use_archive_extract, report_only_failures, no_full_report, useStartLine, teePrint, use_cte):
+def useManageAPI(FullManageProjectName, cbtDict, generate_exec_rpt_each_testcase, use_archive_extract, report_only_failures, no_full_report, useStartLine, use_cte):
     global verbose
 
     print("Using VCProjectApi")
@@ -393,7 +394,7 @@ def useManageAPI(FullManageProjectName, cbtDict, generate_exec_rpt_each_testcase
                                report_only_failures,
                                no_full_report,
                                print_exc,
-                               useStartLine, teePrint, use_cte)
+                               useStartLine, use_cte)
                                
         if xml_file.api != None:
             xml_file.generate_testresults()
@@ -409,9 +410,7 @@ def useManageAPI(FullManageProjectName, cbtDict, generate_exec_rpt_each_testcase
             print("\n\n")
     
     except Exception as e:
-        parse_traceback.parse(traceback.format_exc(), print_exc)
-        #traceback.print_exc()
-
+        print(traceback.format_exc(), print_exc)
 
     try:       
         return xml_file.passed_count, xml_file.failed_count
@@ -419,7 +418,7 @@ def useManageAPI(FullManageProjectName, cbtDict, generate_exec_rpt_each_testcase
         return 0, 0
 
 
-def useNewAPI(FullManageProjectName, manageEnvs, level, envName, cbtDict, generate_exec_rpt_each_testcase, use_archive_extract, report_only_failures, no_full_report, useStartLine, teePrint, use_cte):
+def useNewAPI(FullManageProjectName, manageEnvs, level, envName, cbtDict, generate_exec_rpt_each_testcase, use_archive_extract, report_only_failures, no_full_report, useStartLine, use_cte):
 
     failed_count = 0 
     passed_count = 0
@@ -432,7 +431,7 @@ def useNewAPI(FullManageProjectName, manageEnvs, level, envName, cbtDict, genera
             continue 
 
         if envName == None:
-            pc, fc = genDataApiReports(FullManageProjectName, manageEnvs[currentEnv],  cbtDict, generate_exec_rpt_each_testcase,use_archive_extract, report_only_failures, useStartLine, teePrint, use_cte)
+            pc, fc = genDataApiReports(FullManageProjectName, manageEnvs[currentEnv],  cbtDict, generate_exec_rpt_each_testcase,use_archive_extract, report_only_failures, useStartLine, use_cte)
             passed_count += pc
             failed_count += fc
             
@@ -445,7 +444,7 @@ def useNewAPI(FullManageProjectName, manageEnvs, level, envName, cbtDict, genera
             env_level = manageEnvs[currentEnv]["compiler"] + "/" + manageEnvs[currentEnv]["testsuite"]
             
             if level == None or env_level.upper() == level.upper():
-                pc, fc = genDataApiReports(FullManageProjectName, manageEnvs[currentEnv], cbtDict, generate_exec_rpt_each_testcase,use_archive_extract, report_only_failures, useStartLine, teePrint, use_cte)
+                pc, fc = genDataApiReports(FullManageProjectName, manageEnvs[currentEnv], cbtDict, generate_exec_rpt_each_testcase,use_archive_extract, report_only_failures, useStartLine, use_cte)
                 passed_count += pc
                 failed_count += fc
                 
@@ -456,16 +455,16 @@ def useNewAPI(FullManageProjectName, manageEnvs, level, envName, cbtDict, genera
                 
     return passed_count, failed_count
 
-def cleanupDirectory(path, teePrint):
+def cleanupDirectory(path):
 
     # if the path exists, try to delete all file in it
     if os.path.isdir(path):
         shutil.rmtree(path)
     os.mkdir(path)
 
-def cleanupOldBuilds(teePrint):
+def cleanupOldBuilds():
     for path in ["xml_data","management","execution"]:
-        cleanupDirectory(path, teePrint)
+        cleanupDirectory(path)
 
 # build the Test Case Management Report for Manage Project
 # envName and level only supplied when doing reports for a sub-project
@@ -507,7 +506,7 @@ def buildReports(FullManageProjectName = None,
         print("Version Check: " + str(time.time()))
 
             
-    cleanupOldBuilds(teePrint)
+    cleanupOldBuilds()
 
     for file in glob.glob("*.csv"):
         try:
@@ -539,7 +538,7 @@ def buildReports(FullManageProjectName = None,
         if use_manage_api:
             passed_count, failed_count = useManageAPI(FullManageProjectName, cbtDict, generate_individual_reports, 
                     use_archive_extract, report_only_failures, no_full_report,
-                    useStartLine, teePrint, use_cte)
+                    useStartLine, use_cte)
 
         else:
                 
@@ -550,7 +549,7 @@ def buildReports(FullManageProjectName = None,
             passed_count, failed_count = useNewAPI(FullManageProjectName, 
                 manageEnvs, level, envName, cbtDict, generate_individual_reports, 
                 use_archive_extract, report_only_failures, no_full_report,
-                useStartLine, teePrint, use_cte)
+                useStartLine, use_cte)
                 
         if timing:
             print("XML and Individual reports: " + str(time.time()))
