@@ -32,30 +32,30 @@ The python scrip `vcast_exec.py` is the main driver for build/execute VectorCAST
 The api for vcast_exec.py follows:
 
 ```
-    usage: vcast_exec.py [-h] [--build-execute] [--build | --incremental]
-                         [--output_dir OUTPUT_DIR] [--source_root SOURCE_ROOT]
-                         [--html_base_dir HTML_BASE_DIR] [--cobertura]
-                         [--cobertura_extended] [--lcov] [--junit] [--export_rgw]
-                         [--sonarqube] [--pclp_input PCLP_INPUT]
-                         [--pclp_output_html PCLP_OUTPUT_HTML]
-                         [--exit_with_failed_count [EXIT_WITH_FAILED_COUNT]]
-                         [--check_build_log] [--aggregate] [--metrics]
-                         [--fullstatus] [--utfull] [--tcmr] [--noindex]
-                         [--jobs JOBS] [--ci] [-l LEVEL] [-e ENVIRONMENT]
-                         [--gitlab | --azure] [--print_exc] [--timing] [-v]
-                         [--version]
-                         [ManageProject]
+    usage: vcast_exec.py [VectorCAST Project]
+                         [-h/--help] 
+                         [--build-execute] [--setup SETUP] [--use_imported_result IMPORTEDRESULTS] [--build | --incremental]
+                         [--output_dir OUTPUT_DIR] [--source_root SOURCE_ROOT] [--html_base_dir HTML_BASE_DIR] 
+                         [--cobertura] [--cobertura_extended] [--lcov] [--junit] [--export_rgw] [--sonarqube] 
+                         [--pclp_input PCLP_INPUT] [--pclp_output_html PCLP_OUTPUT_HTML] 
+                         [--exit_with_failed_count] [EXIT_WITH_FAILED_COUNT]] [--exit_with_failed_comp [EXIT_WITH_FAILED_COMP] [--check_build_log] 
+                         [--aggregate] [--metrics] [--fullstatus] [--utfull] [--tcmr] [--noindex] 
+                         [--jobs JOBS] [--ci] [-l LEVEL] [-e ENVIRONMENT] [--gitlab | --azure] 
+                         [--print_exc] [--timing] [-v/--verbose] [--version]
 
     positional arguments:
       ManageProject         VectorCAST Project Name
 
-    optional arguments:
+    options:
       -h, --help            show this help message and exit
 
     Script Actions:
       Options for the main tasks
 
       --build-execute       Builds and exeuctes the VectorCAST Project
+      --setup SETUP         Path to setup_env.bat/.sh (optional)
+      --use_imported_result IMPORTEDRESULTS
+                            Use existing VCR file from repository for CBT via Imported Results
       --build               Only builds the VectorCAST Project
       --incremental         Use Change Based Testing (Cannot be used with --build)
 
@@ -63,34 +63,26 @@ The api for vcast_exec.py follows:
       Options generating metrics
 
       --output_dir OUTPUT_DIR
-                            Set the base directory of the xml_data directory.
-                            Default is the workspace directory
+                            Set the base directory of the xml_data directory. Default is the workspace directory
       --source_root SOURCE_ROOT
-                            Set the absolute path for the source file in coverage
-                            reporting
+                            Set the absolute path for the source file in coverage reporting
       --html_base_dir HTML_BASE_DIR
-                            Set the base directory of the html_reports directory.
-                            The default is the workspace directory
+                            Set the base directory of the html_reports directory. The default is the workspace directory
       --cobertura           Generate coverage results in Cobertura xml format
-      --cobertura_extended  Generate coverage results in extended Cobertura xml
-                            format
+      --cobertura_extended  Generate coverage results in extended Cobertura xml format
       --lcov                Generate coverage results in an LCOV format
       --junit               Generate test results in Junit xml format
       --export_rgw          Export RGW data
-      --sonarqube           Generate test results in SonarQube Generic test
-                            execution report format (CppUnit)
+      --sonarqube           Generate test results in SonarQube Generic test execution report format (CppUnit)
       --pclp_input PCLP_INPUT
-                            Generate static analysis results from PC-lint Plus XML
-                            file to generic static analysis format (codequality)
+                            Generate static analysis results from PC-lint Plus XML file to generic static analysis format (codequality)
       --pclp_output_html PCLP_OUTPUT_HTML
-                            Generate static analysis results from PC-lint Plus XML
-                            file to an HTML output
+                            Generate static analysis results from PC-lint Plus XML file to an HTML output
       --exit_with_failed_count [EXIT_WITH_FAILED_COUNT]
-                            Returns failed test case count as script exit. Set a
-                            value to indicate a percentage above which the job
-                            will be marked as failed
-      --check_build_log     Checks build log for a list of error phrases. Returns
-                            failure if any are found.
+                            Returns failed test case count as script exit. Set a value to indicate a percentage above which the job will be marked as failed
+      --exit_with_failed_comp [EXIT_WITH_FAILED_COMP]
+                            Returns failed if any of the functions have a Complexity (Vg) > value.
+      --check_build_log     Checks build log for a list of error phrases. Returns failure if any are found.
 
     Report Selection:
       VectorCAST Manage reports that can be generated
@@ -98,12 +90,9 @@ The api for vcast_exec.py follows:
       --aggregate           Generate aggregate coverage report VectorCAST Project
       --metrics             Generate metrics reports for VectorCAST Project
       --fullstatus          Generate full status reports for VectorCAST Project
-      --utfull              Generate Full Reports for each VectorCAST environment
-                            in project
-      --tcmr                Generate Test Cases Management Reports for each
-                            VectorCAST environment in project
-      --noindex             Stops index.html report that ties all the other HTML
-                            reports together from being created
+      --utfull              Generate Full Reports for each VectorCAST environment in project
+      --tcmr                Generate Test Cases Management Reports for each VectorCAST environment in project
+      --noindex             Stops index.html report that ties all the other HTML reports together from being created
 
     Build/Execution Options:
       Options that effect build/execute operation
@@ -111,8 +100,7 @@ The api for vcast_exec.py follows:
       --jobs JOBS           Number of concurrent jobs (default = 1)
       --ci                  Use Continuous Integration Licenses
       -l LEVEL, --level LEVEL
-                            Environment Name if only doing single environment.
-                            Should be in the form of compiler/testsuite
+                            Environment Name if only doing single environment. Should be in the form of compiler/testsuite
       -e ENVIRONMENT, --environment ENVIRONMENT
                             Environment Name if only doing single environment.
       --gitlab              Build using GitLab CI (default)
@@ -125,10 +113,13 @@ The api for vcast_exec.py follows:
       --timing              Prints timing information for metrics generation
       -v, --verbose         Enable verbose output
       --version             Displays the version information
-
 ```
 
 # Change log
+04/2025
+* Added a quality gate for function level complexity greater that X
+* Added in support for Imported Results
+
 01/2025
 * Added --check_build_log to examine the VectorCAST build log to see if any errors occurred during the build-execute
    * return codes:

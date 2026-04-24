@@ -56,6 +56,8 @@ fileList = []
 
 encFmt = getVectorCASTEncoding()
 
+vgByFunction = {}
+
 def write_xml(x, name, verbose = False):
 
     if verbose:
@@ -370,6 +372,10 @@ def processStatementBranchMCDC(fileApi, lines, extended = False):
 
     return linesCovered, linesTotal
 
+def updateVgByFunction(coverXML, coverApi):
+    for func in coverApi.functions:
+        fullName = func.source_file.path + "::" + func.parameterized_name
+        vgByFunction[fullName] = func.metrics.complexity
 
 def procesCoverage(coverXML, coverApi, extended = False, source_root = ""):
 
@@ -634,6 +640,8 @@ def runCoberturaResults(packages, api, verbose = False, extended = False, source
 
         vg     += file.metrics.complexity
         pkg_vg += file.metrics.complexity
+        
+        updateVgByFunction(classes, file)
 
         if extended:
             total_fc   += file.metrics.function_calls

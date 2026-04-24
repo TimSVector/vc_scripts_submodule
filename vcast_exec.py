@@ -54,6 +54,7 @@ from check_build_log import check_build_log
 
 import shlex, platform
 from pathlib import Path
+import cobertura
 
 from enum import Enum
 
@@ -134,6 +135,13 @@ class VectorCASTExecute(object):
         self.html_base_dir = args.html_base_dir
         self.use_cte = args.use_cte
         self.noIndex = args.noindex
+        
+        try:
+            self.complexityThreshold = int(args.exit_with_failed_comp)
+            self.complexityCheck = True
+        except:
+            self.complexityCheck = False
+            self.complexityThreshold = 100000
 
         if args.exit_with_failed_count == 'not present':
             self.useJunitFailCountPct = False
@@ -179,11 +187,13 @@ class VectorCASTExecute(object):
             self.useCI = ""
             self.ci = ""
 
+        self.importedResults = args.importedResults
+        
         if args.incremental:
             self.useCBT = "--incremental"
         else:
             self.useCBT = ""
-
+            
         self.useLevelEnv = False
         self.environment = None
         self.level = None
@@ -364,7 +374,6 @@ class VectorCASTExecute(object):
         if not checkVectorCASTVersion(21):
             print("Cannot create Cobertura metrics. Please upgrade VectorCAST")
         else:
-            import cobertura
 
             if self.cobertura_extended:
                 print("Creating Extended Cobertura Metrics")
@@ -499,7 +508,10 @@ class VectorCASTExecute(object):
         self.manageWait.exec_manage_command ("--status")
         self.manageWait.exec_manage_command ("--force --release-locks")
         self.manageWait.exec_manage_command ("--config VCAST_CUSTOM_REPORT_FORMAT=HTML")
-
+        if self.importedResults:
+            self.manageWait.exec_manage_command (f"--force --import-result={self.importedResults}")
+            self.manageWait.exec_manage_command ("--status")
+        
         if self.useLevelEnv:
             output = "--output " + self.mpName + self.reportsName + "_rebuild.html"
         else:
@@ -561,6 +573,7 @@ if __name__ == '__main__':
     actionGroup = parser.add_argument_group('Script Actions', 'Options for the main tasks')
     actionGroup.add_argument('--build-execute', help='Builds and exeuctes the VectorCAST Project', action="store_true", default = False)
     actionGroup.add_argument("--setup", default="", help="Path to setup_env.bat/.sh (optional)")
+    actionGroup.add_argument('--use_imported_result', help='Use existing VCR file from repository for CBT via Imported Results', dest="importedResults", default = None)
 
     parser_specify = actionGroup.add_mutually_exclusive_group()
     parser_specify.add_argument('--build',       help='Only builds the VectorCAST Project', action="store_true", default = False)
@@ -580,9 +593,10 @@ if __name__ == '__main__':
     metricsGroup.add_argument('--pclp_output_html', help='Generate static analysis results from PC-lint Plus XML file to an HTML output', action="store", default = "pclp_findings.html")
     metricsGroup.add_argument('--exit_with_failed_count', help='Returns failed test case count as script exit. Set a value to indicate a percentage above which the job will be marked as failed',
                                nargs='?', default='not present', const='(default 0)')
+    metricsGroup.add_argument('--exit_with_failed_comp', help='Returns failed if any of the functions have a Complexity (Vg) > value.',
+                               nargs='?', default=10)
     metricsGroup.add_argument('--check_build_log', help='Checks build log for a list of error phrases. Returns failure if any are found.',
-                               action="store_true", default = False)
-
+                               action="store_true", default = False)    
     reportGroup = parser.add_argument_group('Report Selection', 'VectorCAST Manage reports that can be generated')
     reportGroup.add_argument('--aggregate', help='Generate aggregate coverage report VectorCAST Project', action="store_true", default = False)
     reportGroup.add_argument('--metrics', help='Generate metrics reports for VectorCAST Project', action="store_true", default = False)
@@ -609,6 +623,13 @@ if __name__ == '__main__':
     actionGroup.add_argument('--version', help='Displays the version information', action="store_true", default = False)
 
     args = parser.parse_args()
+
+    if args.importedResults and not args.incremental:
+        print("[INFO] Calling conflict of --use_import_result and not --incremental")
+        print("[INFO] Calling it this way ignores --use_imported_result")
+        
+    if args.exit_with_failed_comp and not args.cobertura and not args.cobertura_extended:
+        args.cobertura = True
 
     if args.verbose:
         import sys, shlex
@@ -678,9 +699,20 @@ if __name__ == '__main__':
 
     if args.export_rgw:
         vcExec.exportRgw()
+        
+    complexityFailureCount = 0
+    if vcExec.complexityCheck:
+        for key in cobertura.vgByFunction:
+            if cobertura.vgByFunction[key] > vcExec.complexityThreshold: 
+                file, func = key.split("::")
+                print (f"[ERROR] \n   File    : {file}\n   Function: {func}\n   Message : COMPLEXITY is greater than {vcExec.complexityThreshold}")
+                complexityFailureCount += 1
+                
+        if complexityFailureCount > 0:
+            sys.exit(complexityFailureCount)
 
     if vcExec.useJunitFailCountPct:
-        print("--exit_with_failed_count=" + args.exit_with_failed_count + " specified. Fail Percent = " + str(round(vcExec.failed_pct,0)) + "% Return code: " + str(vcExec.failed_count))
+        print(f"[ERROR] exit_with_failed_count={args.exit_with_failed_count} specified. Fail Percent = {round(vcExec.failed_pct,0)}% Return code: {vcExec.failed_count}")
         sys.exit(vcExec.failed_count)
 
     if args.check_build_log:
