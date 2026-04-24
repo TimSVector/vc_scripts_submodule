@@ -627,6 +627,9 @@ if __name__ == '__main__':
     if args.importedResults and not args.incremental:
         print("[INFO] Calling conflict of --use_import_result and not --incremental")
         print("[INFO] Calling it this way ignores --use_imported_result")
+        
+    if args.complexityCheck and not args.cobertura and not args.cobertura_extended):
+        args.cobertura = True
 
     if args.verbose:
         import sys, shlex
