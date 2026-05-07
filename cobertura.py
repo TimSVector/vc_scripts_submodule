@@ -374,9 +374,6 @@ def processStatementBranchMCDC(fileApi, lines, extended = False):
 
 def updateVgByFunction(coverXML, coverApi):
     
-    import pdb
-    pdb.set_trace()
-    
     for func in coverApi.functions:
         
         if isinstance(func.instrumented_functions[0].parameterized_name, bool):
