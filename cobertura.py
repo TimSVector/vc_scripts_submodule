@@ -373,8 +373,13 @@ def processStatementBranchMCDC(fileApi, lines, extended = False):
     return linesCovered, linesTotal
 
 def updateVgByFunction(coverXML, coverApi):
+    
     for func in coverApi.functions:
-        fullName = func.source_file.path + "::" + func.parameterized_name
+        
+        if isinstance(func.instrumented_functions[0].parameterized_name, bool):
+            continue
+
+        fullName = func.source_file.path + "::" + func.instrumented_functions[0].parameterized_name
         vgByFunction[fullName] = func.metrics.complexity
 
 def procesCoverage(coverXML, coverApi, extended = False, source_root = ""):
