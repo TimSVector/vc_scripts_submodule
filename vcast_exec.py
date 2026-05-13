@@ -136,12 +136,12 @@ class VectorCASTExecute(object):
         self.use_cte = args.use_cte
         self.noIndex = args.noindex
         
-        try:
+        if args.exit_with_failed_comp:
             self.complexityThreshold = int(args.exit_with_failed_comp)
             self.complexityCheck = True
-        except:
-            self.complexityCheck = False
+        else:
             self.complexityThreshold = 100000
+            self.complexityCheck = False
 
         if args.exit_with_failed_count == 'not present':
             self.useJunitFailCountPct = False
@@ -594,7 +594,7 @@ if __name__ == '__main__':
     metricsGroup.add_argument('--exit_with_failed_count', help='Returns failed test case count as script exit. Set a value to indicate a percentage above which the job will be marked as failed',
                                nargs='?', default='not present', const='(default 0)')
     metricsGroup.add_argument('--exit_with_failed_comp', help='Returns failed if any of the functions have a Complexity (Vg) > value.',
-                               nargs='?', default=10)
+                               nargs='?', default=None)
     metricsGroup.add_argument('--check_build_log', help='Checks build log for a list of error phrases. Returns failure if any are found.',
                                action="store_true", default = False)    
     reportGroup = parser.add_argument_group('Report Selection', 'VectorCAST Manage reports that can be generated')
