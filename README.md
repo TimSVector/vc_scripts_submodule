@@ -116,11 +116,20 @@ The api for vcast_exec.py follows:
 ```
 
 # Change log
-04/2025
+06/2026
+* Fixed Full Reports always getting generated
+* Fixed --output_dir and --html_base_dir so that
+    * xml_data gets copied to --output_dir
+    * */html, management/**/*.html gets copied to --html_base_dir
+* Changed the generation of reports and metrics to create in place then copy to --output_dir and --html_base_dir
+* Fixed html file path name when using --gitlab
+* Fixed --gitlab and --azure options to be a global setting no matter what else is set in the environment
+
+04/2026
 * Added a quality gate for function level complexity greater that X
 * Added in support for Imported Results
 
-01/2025
+01/2026
 * Added --check_build_log to examine the VectorCAST build log to see if any errors occurred during the build-execute
    * return codes:
        * -1 - Build log not found

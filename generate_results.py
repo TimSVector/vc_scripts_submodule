@@ -617,9 +617,6 @@ if __name__ == '__main__':
         print ("Legacy mode testing not support with Python3 (VectorCAST 2021 and above)")
         sys.exit(-1)
         
-
-    
-
     generate_individual_reports = not args.dont_generate_individual_reports
 
     if args.verbose:

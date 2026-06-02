@@ -92,9 +92,9 @@ class VectorCASTExecute(object):
     def detect_ci_tool(self):
         if "JENKINS_URL" in os.environ:
             self.ciTool = CITool.JENKINS
-        elif "GITLAB_CI" in os.environ:
+        elif "GITLAB_CI" in os.environ or self.gitlab:
             self.ciTool = CITool.GITLAB
-        elif "AZURE_PIPELINES" in os.environ or "BUILD_SOURCEVERSION" in os.environ:
+        elif "AZURE_PIPELINES" in os.environ or "BUILD_SOURCEVERSION" in os.environ or self.azure:
             self.ciTool =  CITool.AZURE
         elif "GITHUB_ACTIONS" in os.environ:
             self.ciTool =  CITool.GITHUB
@@ -113,12 +113,14 @@ class VectorCASTExecute(object):
 
     def __init__(self, args):
 
+        self.azure = args.azure
+        self.gitlab = args.gitlab
+
         self.detect_ci_tool()
 
         # setup default values
         self.azure = args.azure
         self.gitlab = args.gitlab
-        self.print_exc = args.print_exc
         self.print_exc = args.print_exc
         self.timing = args.timing
         self.jobs = args.jobs
@@ -156,12 +158,13 @@ class VectorCASTExecute(object):
 
         if args.output_dir:
             self.output_dir = args.output_dir
-            self.xml_data_dir = os.path.join(args.output_dir, 'xml_data')
-            if not os.path.exists(self.xml_data_dir):
-                os.makedirs(self.xml_data_dir)
         else:
             self.output_dir = ""
             self.xml_data_dir = "xml_data"
+
+        self.xml_data_dir = "xml_data"
+        if not os.path.exists(self.xml_data_dir):
+            os.makedirs(self.xml_data_dir)
 
         if args.build and not args.build_execute:
             self.build_execute = "--build"
@@ -297,6 +300,64 @@ class VectorCASTExecute(object):
             k, v = line.split("=", 1)
             os.environ[k] = v
 
+    def copyHtmlFiles(self):
+        source_dir = Path(".")
+        dest_dir = Path(self.html_base_dir)
+        
+        if os.path.exists(dest_dir):
+            shutil.rmtree(dest_dir)
+
+        patterns = [
+            "*.html",
+            "html_reports/**/*",
+            "management/**/*",
+            "xml_data/**/*.html",
+        ]
+
+        for pattern in patterns:
+            for src in glob.glob(str(source_dir / pattern), recursive=True):
+                src_path = Path(src)
+
+                # Skip directories; copy files only
+                if src_path.is_dir():
+                    continue
+
+                # Preserve relative directory structure
+                rel_path = src_path.relative_to(source_dir)
+                dst_path = dest_dir / rel_path
+
+                # Make destination subdirectories if needed
+                dst_path.parent.mkdir(parents=True, exist_ok=True)
+
+                # Copy file metadata too
+                shutil.copy2(src_path, dst_path)
+                
+    def copyXmlData(self):
+        source_dir = Path(".")
+        dest_dir = Path(self.output_dir)
+
+        patterns = [
+            "xml_data/**/*",
+        ]
+
+        for pattern in patterns:
+            for src in glob.glob(str(source_dir / pattern), recursive=True):
+                src_path = Path(src)
+
+                # Skip directories; copy files only
+                if src_path.is_dir():
+                    continue
+
+                # Preserve relative directory structure
+                rel_path = src_path.relative_to(source_dir)
+                dst_path = dest_dir / rel_path
+
+                # Make destination subdirectories if needed
+                dst_path.parent.mkdir(parents=True, exist_ok=True)
+
+                # Copy file metadata too
+                shutil.copy2(src_path, dst_path)            
+                
     def generateIndexHtml(self):
         if not checkVectorCASTVersion(21):
             print("Cannot create index.html. Please upgrade VectorCAST")
@@ -309,8 +370,8 @@ class VectorCASTExecute(object):
                 prj_dir = os.getcwd().replace("\\","/") + "/"
 
             tempHtmlReportList = glob.glob("*.html")
-            tempHtmlReportList += glob.glob(os.path.join(self.xml_data_dir, "*.html"))
-            tempHtmlReportList += glob.glob(os.path.join(self.html_base_dir, "*.html"))
+            tempHtmlReportList += glob.glob(os.path.join('xml_data', "*.html"))
+            tempHtmlReportList += glob.glob(os.path.join('html_reports', "*.html"))
             htmlReportList = []
 
             for report in tempHtmlReportList:
@@ -320,7 +381,7 @@ class VectorCASTExecute(object):
                     htmlReportList.append(report)
 
             from create_index_html import create_index_html
-            create_index_html(self.FullMP, self.ciTool == CITool.GITLAB, output_dir=self.output_dir)
+            create_index_html(self.FullMP, self.ciTool == CITool.GITLAB)
 
     def runJunitMetrics(self):
         print("Creating JUnit Metrics")
@@ -343,7 +404,7 @@ class VectorCASTExecute(object):
                 cbtDict = None,
                 use_archive_extract = False,
                 report_only_failures = False,
-                no_full_report = False,
+                no_full_report = True,
                 use_ci = self.ci,
                 xml_data_dir = self.xml_data_dir,
                 useStartLine = self.useStartLine)
@@ -409,21 +470,21 @@ class VectorCASTExecute(object):
 
     def runReports(self):
         if self.aggregate:
-            agg_rpt_name = os.path.join(self.output_dir, self.mpName + "_aggregate_report.html")
+            agg_rpt_name = self.mpName + "_aggregate_report.html"
             print("Creating Aggregate Coverage Report")
             if os.path.exists(agg_rpt_name):
                 os.remove(agg_rpt_name)
             self.manageWait.exec_manage_command ("--create-report=aggregate --output=" + agg_rpt_name)
             self.needIndexHtml = True
         if self.metrics:
-            met_rpt_name = os.path.join(self.output_dir, self.mpName + "_metrics_report.html")
+            met_rpt_name = self.mpName + "_metrics_report.html"
             print("Creating Metrics Report")
             if os.path.exists(met_rpt_name):
                 os.remove(met_rpt_name)
             self.manageWait.exec_manage_command ("--create-report=metrics --output=" + met_rpt_name)
             self.needIndexHtml = True
         if self.fullstatus:
-            fs_rpt_name = os.path.join(self.output_dir, self.mpName + "_full_status_report.html")
+            fs_rpt_name =self.mpName + "_full_status_report.html"
             if os.path.exists(fs_rpt_name):
                 os.remove(fs_rpt_name)
             print("Creating Full Status Report")
@@ -433,40 +494,40 @@ class VectorCASTExecute(object):
     def reportCreate(self, report_type, desc):
         from vector.apps.DataAPI.vcproject_api import VCProjectApi
         from vector.apps.DataAPI.cover_api import CoverApi
-        vcproj = VCProjectApi(self.FullMP)
-
-        forCover = {"FULL_REPORT": "AGGREGATE_REPORT",
-                    "MANAGEMENT_REPORT": "COVER_MANAGEMENT_REPORT"}
-        for env in vcproj.Environment.all():
-            if not env.is_active:
-                continue
-
-            self.needIndexHtml = True
-
-            if "MANAGEMENT_REPORT" in report_type:
-                report_name = env.compiler.name + "_" + env.testsuite.name + "_" + env.name + "_management_report.html"
-                report_name = os.path.join(self.output_dir, "management",report_name)
-                print("Creating {} HTML report for {} in {}".format(desc, env.name, report_name))
-            else:
-                report_name = env.compiler.name + "_" + env.testsuite.name + "_" + env.name + "_full_report.html"
-                report_name = os.path.join(self.output_dir, "management",report_name)
-                print("Creating {} HTML report for {} in {}".format(desc, env.name, report_name))
-
-            if env.api:
-                if isinstance(env.api, CoverApi):
-                    env.api.report(report_type=forCover[report_type], formats=["HTML"], output_file=report_name)
-                else:
-                    env.api.report(report_type=report_type, formats=["HTML"], output_file=report_name)
-            else:
-                print(f"{env.name} has a null env.api {env.api}")
+        with VCProjectApi(self.FullMP) as vcproj:
+            forCover = {"FULL_REPORT": "AGGREGATE_REPORT",
+                        "MANAGEMENT_REPORT": "COVER_MANAGEMENT_REPORT"}
+            for env in vcproj.Environment.all():
+                if not env.is_active:
+                    continue
+                    
+                self.needIndexHtml = True
                 
-        vcproj.close()
+                if "MANAGEMENT_REPORT" in report_type:
+                    report_name = env.compiler.name + "_" + env.testsuite.name + "_" + env.name + "_management_report.html"
+                    report_name = os.path.join("management",report_name)
+                    level = env.level.name
+
+                    print("Creating {} HTML report for {} in {}".format(desc, env.name, report_name))
+                else:
+                    report_name = env.compiler.name + "_" + env.testsuite.name + "_" + env.name + "_full_report.html"
+                    report_name = os.path.join("management",report_name)
+                    print("Creating {} HTML report for {} in {}".format(desc, env.name, report_name))
+
+                if env.api:
+                    if isinstance(env.api, CoverApi):
+                        env.api.report(report_type=forCover[report_type], formats=["HTML"], output_file=report_name)
+                    else:
+                        env.api.report(report_type=report_type, formats=["HTML"], output_file=report_name)
+                else:
+                    print(f"{env.name} has a null env.api {env.api}")
+        return
 
     def generateTestCaseMgtRpt(self):
-        if not os.path.exists(os.path.join(self.output_dir, "management")):
-            os.makedirs(os.path.join(self.output_dir, "management"))
+        if not os.path.exists("management"):
+            os.makedirs("management")
         else:
-            for file in glob.glob(os.path.join(self.output_dir, "management","*_management_report.html")):
+            for file in glob.glob(os.path.join("management","*_management_report.html")):
                 os.remove(file)
 
         if checkVectorCASTVersion(21):
@@ -476,15 +537,16 @@ class VectorCASTExecute(object):
                 report_type = "MANAGEMENT_REPORT",
                 desc = "Test Case Management"
             )
+
         else:
             print("Cannot create Test Case Management HTML report. Please upgrade VectorCAST")
 
 
     def generateUtFullReport(self):
-        if not os.path.exists(os.path.join(self.output_dir, "management")):
-            os.makedirs(os.path.join(self.output_dir, "management"))
+        if not os.path.exists("management"):
+            os.makedirs("management")
         else:
-            for file in glob.glob(os.path.join(self.output_dir, "management","*_full_report.html")):
+            for file in glob.glob(os.path.join("management","*_full_report.html")):
                 os.remove(file)
 
         if checkVectorCASTVersion(21):
@@ -623,7 +685,7 @@ if __name__ == '__main__':
     actionGroup.add_argument('--version', help='Displays the version information', action="store_true", default = False)
 
     args = parser.parse_args()
-
+    
     if args.importedResults and not args.incremental:
         print("[INFO] Calling conflict of --use_import_result and not --incremental")
         print("[INFO] Calling it this way ignores --use_imported_result")
@@ -699,6 +761,12 @@ if __name__ == '__main__':
 
     if args.export_rgw:
         vcExec.exportRgw()
+        
+    if args.html_base_dir != "html_reports":
+        vcExec.copyHtmlFiles()
+        
+    if args.output_dir:
+        vcExec.copyXmlData()
         
     complexityFailureCount = 0
     if vcExec.complexityCheck:

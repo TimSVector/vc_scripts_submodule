@@ -765,8 +765,10 @@ def runCoberturaResults(packages, api, verbose = False, extended = False, source
 
 def generateCoverageResults(inFile, azure = False, xml_data_dir = "xml_data", verbose = False, extended = False, source_root = "" ):
 
-    cwd = os.getcwd()
-    xml_data_dir = os.path.join(cwd,xml_data_dir)
+    # cwd = os.getcwd()
+    # xml_data_dir = os.path.join(cwd,xml_data_dir)
+    
+    xml_data_dir = "xml_data"
 
     #coverage results
     coverages=etree.Element("coverage")
