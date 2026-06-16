@@ -108,14 +108,20 @@ def getFileXML(testXml, coverAPI, verbose = False, extended = False, source_root
         except:
             prj_dir = os.getcwd().replace("\\","/") + "/"
 
-
     fname = coverAPI.display_name
     fpath = coverAPI.display_path
+    if ".." in fpath:
+        print(f"[INFO] fixing fpath = {fpath}")
+        fpath = coverAPI._relative_path    
+        print(f"[INFO] to fpath = {fpath}")
+        
+    print(f"[INFO]fpath = {fpath}")
     try:
         fpath = os.path.relpath(fpath,prj_dir).replace("\\","/")
     except:
         fpath = fpath.replace("\\","/")
         pass
+    print(f"[INFO]fpath = {fpath}")        
 
     branch_totals = float(coverAPI.metrics.branches + coverAPI.metrics.mcdc_branches)
     branch_covered = float(
