@@ -110,21 +110,21 @@ def getFileXML(testXml, coverAPI, verbose = False, extended = False, source_root
 
     fname = coverAPI.display_name
     fpath = coverAPI.display_path
-    print(f"[INFO] fpath = {fpath}")
+    print(f"[INFO-1.0] fpath = {fpath}")
     isRelPath =  ".." in fpath
-    print(f"[INFO] is fpath have .. in it = {fpath}")
+    print(f"[INFO-2.0] is fpath have .. in it = {fpath}")
     if ".." in fpath:
-        print(f"[INFO] fixing fpath = {fpath}")
+        print(f"[INFO-2.1] fixing fpath = {fpath}")
         fpath = coverAPI._relative_path    
-        print(f"[INFO] to fpath = {fpath}")
+        print(f"[INFO-2.2] to fpath = {fpath}")
         
-    print(f"[INFO]fpath = {fpath}")
+    print(f"[INFO-3.0]fpath = {fpath}")
     try:
         fpath = os.path.relpath(fpath,prj_dir).replace("\\","/")
     except:
         fpath = fpath.replace("\\","/")
         pass
-    print(f"[INFO]fpath = {fpath}")        
+    print(f"[INFO-3.0]fpath = {fpath}")        
 
     branch_totals = float(coverAPI.metrics.branches + coverAPI.metrics.mcdc_branches)
     branch_covered = float(
