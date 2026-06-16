@@ -110,6 +110,9 @@ def getFileXML(testXml, coverAPI, verbose = False, extended = False, source_root
 
     fname = coverAPI.display_name
     fpath = coverAPI.display_path
+    print(f"[INFO] fpath = {fpath}")
+    isRelPath =  ".." in fpath
+    print(f"[INFO] is fpath have .. in it = {fpath}")
     if ".." in fpath:
         print(f"[INFO] fixing fpath = {fpath}")
         fpath = coverAPI._relative_path    
