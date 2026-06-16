@@ -108,7 +108,6 @@ def getFileXML(testXml, coverAPI, verbose = False, extended = False, source_root
         except:
             prj_dir = os.getcwd().replace("\\","/") + "/"
 
-
     fname = coverAPI.display_name
     fpath = coverAPI._relative_path.replace("\\","/")
 
