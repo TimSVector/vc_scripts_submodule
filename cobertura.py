@@ -816,7 +816,12 @@ def generateCoverageResults(inFile, azure = False, xml_data_dir = "xml_data", ve
     if FC_rate     != -1.0: print ("function calls: {:.2f}% ({:d} out of {:d})".format(FC_rate*100.0, cov_fc, total_fc))
     if MCDC_rate   != -1.0: print ("mcdc pairs: {:.2f}% ({:d} out of {:d})".format(MCDC_rate*100.0, cov_mcdc, total_mcdc))
 
-    if statement_rate   != -1.0: print ("coverage: {:.2f}% of statements".format(statement_rate*100.0))
+    # GitLab job 'coverage' keyword reads this line (see .gitlab/ci/unit-test.gitlab-ci.yml
+    # regex). Prefer MC/DC pairs when the env has them (Statement+MCDC), else statements.
+    if total_mcdc > 0 and MCDC_rate != -1.0:
+        print ("coverage: {:.2f}% of mcdc pairs".format(MCDC_rate*100.0))
+    elif statement_rate != -1.0:
+        print ("coverage: {:.2f}% of statements".format(statement_rate*100.0))
     if complexity       != -1.0: print ("complexity: {:d}".format(complexity))
     source = etree.SubElement(sources, "source")
     source.text = "./"

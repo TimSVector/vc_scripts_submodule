@@ -625,8 +625,35 @@ class VectorCASTExecute(object):
 
             with open(self.build_log_name,"wb") as fd:
                 fd.write(build_log.encode(self.encFmt, "replace"))
+                
+    def getReturnCode(self):
+        
+        msgs = []
+        
+        complexityFailureCount = 0
+        if self.complexityCheck:
+            for key in cobertura.vgByFunction:
+                if cobertura.vgByFunction[key] > self.complexityThreshold: 
+                    file, func = key.split("::")
+                    print (f"[ERROR] \n   File    : {file}\n   Function: {func}\n   Message : COMPLEXITY is greater than {self.complexityThreshold}")
+                    complexityFailureCount += 1
+                    
+            if complexityFailureCount > 0:
+                msgs.append(f"{complexityFailureCount} complexity failures")
 
+        if args.check_build_log:
+            if check_build_log(self.build_log_name) == 2:
+                msgs.append(f"Build log error. See information above...")
 
+        if self.useJunitFailCountPct:
+            print(f"[ERROR] exit_with_failed_count={args.exit_with_failed_count} specified. Fail Percent = {round(self.failed_pct,0)}% Return code: {self.failed_count}")
+            msgs.append(f"Tests case failues greater than {args.exit_with_failed_count} specified")
+
+        if msgs:
+            return " ; ".join(msgs)
+        else:
+            return 0
+            
 if __name__ == '__main__':
 
     parser = argparse.ArgumentParser()
@@ -768,22 +795,7 @@ if __name__ == '__main__':
     if args.output_dir:
         vcExec.copyXmlData()
         
-    complexityFailureCount = 0
-    if vcExec.complexityCheck:
-        for key in cobertura.vgByFunction:
-            if cobertura.vgByFunction[key] > vcExec.complexityThreshold: 
-                file, func = key.split("::")
-                print (f"[ERROR] \n   File    : {file}\n   Function: {func}\n   Message : COMPLEXITY is greater than {vcExec.complexityThreshold}")
-                complexityFailureCount += 1
-                
-        if complexityFailureCount > 0:
-            sys.exit(complexityFailureCount)
-
-    if vcExec.useJunitFailCountPct:
-        print(f"[ERROR] exit_with_failed_count={args.exit_with_failed_count} specified. Fail Percent = {round(vcExec.failed_pct,0)}% Return code: {vcExec.failed_count}")
-        sys.exit(vcExec.failed_count)
-
-    if args.check_build_log:
-        if check_build_log(vcExec.build_log_name) == 2:
-            sys.exit(2)
-
+    returnCode = vcExec.getReturnCode()
+    
+    sys.exit(returnCode)
+    
