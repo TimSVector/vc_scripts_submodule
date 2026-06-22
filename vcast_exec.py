@@ -155,6 +155,7 @@ class VectorCASTExecute(object):
             self.useJunitFailCountPct = True
             self.junit_percent_to_fail = int(args.exit_with_failed_count)
         self.failed_count = 0
+        self.passed_count = 0        
 
         if args.output_dir:
             self.output_dir = args.output_dir
@@ -166,6 +167,8 @@ class VectorCASTExecute(object):
         if not os.path.exists(self.xml_data_dir):
             os.makedirs(self.xml_data_dir)
 
+        self.covToDisplay = args.covToDisplay
+            
         if args.build and not args.build_execute:
             self.build_execute = "--build"
             self.vcast_action = "--vcast_action build"
@@ -442,7 +445,8 @@ class VectorCASTExecute(object):
                 print("Creating Cobertura Metrics")
 
             cobertura.generateCoverageResults(self.FullMP, self.azure, self.xml_data_dir, verbose = self.verbose,
-                extended=self.cobertura_extended, source_root = self.source_root)
+                extended=self.cobertura_extended, source_root = self.source_root,
+                covToDisplay = self.covToDisplay)
 
     def runSonarQubeMetrics(self):
         if not checkVectorCASTVersion(21):
@@ -686,6 +690,10 @@ if __name__ == '__main__':
                                nargs='?', default=None)
     metricsGroup.add_argument('--check_build_log', help='Checks build log for a list of error phrases. Returns failure if any are found.',
                                action="store_true", default = False)    
+                               
+    metricsGroup.add_argument("--covToDisplay", type=str.lower, choices=["statement", "branch", "mcdc", "function", "functioncall"], 
+                               default="statement",help='Selects which coverage to display for coverage print.  Default is "statement".',)
+                                
     reportGroup = parser.add_argument_group('Report Selection', 'VectorCAST Manage reports that can be generated')
     reportGroup.add_argument('--aggregate', help='Generate aggregate coverage report VectorCAST Project', action="store_true", default = False)
     reportGroup.add_argument('--metrics', help='Generate metrics reports for VectorCAST Project', action="store_true", default = False)

@@ -757,7 +757,8 @@ def runCoberturaResults(packages, api, verbose = False, extended = False, source
     return total_st, cov_st, total_lines, cov_lines, total_br, cov_br, total_func, cov_func, total_fc, cov_fc, total_mcdc, cov_mcdc, branch_rate, statement_rate, line_rate, func_rate, FC_rate, MCDC_rate, vg
 
 
-def generateCoverageResults(inFile, azure = False, xml_data_dir = "xml_data", verbose = False, extended = False, source_root = "" ):
+def generateCoverageResults(inFile, azure = False, xml_data_dir = "xml_data", 
+        verbose = False, extended = False, source_root = "", covToDisplay="statement"):
 
     # cwd = os.getcwd()
     # xml_data_dir = os.path.join(cwd,xml_data_dir)
@@ -816,12 +817,40 @@ def generateCoverageResults(inFile, azure = False, xml_data_dir = "xml_data", ve
     if FC_rate     != -1.0: print ("function calls: {:.2f}% ({:d} out of {:d})".format(FC_rate*100.0, cov_fc, total_fc))
     if MCDC_rate   != -1.0: print ("mcdc pairs: {:.2f}% ({:d} out of {:d})".format(MCDC_rate*100.0, cov_mcdc, total_mcdc))
 
-    # GitLab job 'coverage' keyword reads this line (see .gitlab/ci/unit-test.gitlab-ci.yml
-    # regex). Prefer MC/DC pairs when the env has them (Statement+MCDC), else statements.
-    if total_mcdc > 0 and MCDC_rate != -1.0:
-        print ("coverage: {:.2f}% of mcdc pairs".format(MCDC_rate*100.0))
-    elif statement_rate != -1.0:
-        print ("coverage: {:.2f}% of statements".format(statement_rate*100.0))
+    # use selected coverage from --covToDisplay option
+    match covToDisplay:
+        case "statement":
+            if statement_rate != -1.0: 
+                print ("coverage: {:.2f}% of statements".format(statement_rate*100.0))
+            else:
+                print (f"[ERROR] selected coverage {covToDisplay} has no coverage metrics")
+
+        case "branch":
+            if branch_rate != -1.0: 
+                print ("coverage: {:.2f}% of branch".format(branch_rate*100.0))
+            else:
+                print (f"[ERROR] selected coverage {covToDisplay} has no coverage metrics")
+
+        case "mcdc":
+            if MCDC_rate != -1.0: 
+                print ("coverage: {:.2f}% of mcdc pairs".format(MCDC_rate*100.0))
+            else:
+                print (f"[ERROR] selected coverage {covToDisplay} has no coverage metrics")
+
+        case "function":
+            if func_rate != -1.0: 
+                print ("coverage: {:.2f}% of functions".format(func_rate*100.0))
+            else:
+                print (f"[ERROR] selected coverage {covToDisplay} has no coverage metrics")
+
+        case "functioncall":
+            if FC_rate != -1.0: 
+                print ("coverage: {:.2f}% of function calls".format(FC_rate*100.0))
+            else:
+                print (f"[ERROR] selected coverage {covToDisplay} has no coverage metrics")
+                
+
+        
     if complexity       != -1.0: print ("complexity: {:d}".format(complexity))
     source = etree.SubElement(sources, "source")
     source.text = "./"
