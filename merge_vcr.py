@@ -76,12 +76,16 @@ def run(origVcrFile, newVcrFile, verbose):
         for file in glob.glob("newVcr/*.*"):
             if file.endswith(".db") and "_cover" not in file:
                 newDbName = file
+            elif file.endswith(".db") and "_cover" in file:
+                newCoverDbName = file
 
     with zipfile.ZipFile(tempOrigVcrFile, 'r') as zip_ref:
         zip_ref.extractall("origVcr")
         for file in glob.glob("origVcr/*.*"):
             if file.endswith(".db") and "_cover" not in file:
                 origDbName = file
+            elif file.endswith(".db") and "_cover" in file:
+                origCoverDbName = file
                 
     os.remove(tempNewVcrFile)
     os.remove(tempOrigVcrFile)
@@ -102,6 +106,9 @@ def run(origVcrFile, newVcrFile, verbose):
     
     new_db.close()
     orig_db.close()
+    
+    print(f"[INFO] {newCoverDbName} >> {origCoverDbName}")
+    shutil.copyfile(newCoverDbName, origCoverDbName)
 
     os.remove(newVcrFile)
     os.remove(origVcrFile)
