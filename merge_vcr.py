@@ -65,7 +65,7 @@ def run(origVcrFile, newVcrFile, verbose):
     except:
         pass
     
-    tempNewVcrFile = os.path.join("newVcr",newVcrFile)
+    tempNewVcrFile = os.path.join("newVcr",os.path.basename(newVcrFile))
     tempOrigVcrFile = os.path.join("origVcr",os.path.basename(origVcrFile))
     
     shutil.copyfile(newVcrFile, tempNewVcrFile)
@@ -107,7 +107,6 @@ def run(origVcrFile, newVcrFile, verbose):
     new_db.close()
     orig_db.close()
     
-    print(f"[INFO] {newCoverDbName} >> {origCoverDbName}")
     shutil.copyfile(newCoverDbName, origCoverDbName)
 
     os.remove(newVcrFile)
