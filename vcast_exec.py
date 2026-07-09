@@ -373,8 +373,11 @@ class VectorCASTExecute(object):
                 prj_dir = os.getcwd().replace("\\","/") + "/"
 
             tempHtmlReportList = glob.glob("*.html")
-            tempHtmlReportList += glob.glob(os.path.join('xml_data', "*.html"))
-            tempHtmlReportList += glob.glob(os.path.join('html_reports', "*.html"))
+            #tempHtmlReportList += glob.glob(os.path.join('xml_data', "*.html"))
+            #tempHtmlReportList += glob.glob(os.path.join('html_reports', "*.html"))        
+            tempHtmlReportList += glob.glob(os.path.join(self.xml_data_dir, "*.html"))
+            tempHtmlReportList += glob.glob(os.path.join(self.html_base_dir, "*.html"))
+            
             htmlReportList = []
 
             for report in tempHtmlReportList:

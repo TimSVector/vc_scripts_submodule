@@ -848,8 +848,6 @@ def generateCoverageResults(inFile, azure = False, xml_data_dir = "xml_data",
                 print ("coverage: {:.2f}% of function calls".format(FC_rate*100.0))
             else:
                 print (f"[ERROR] selected coverage {covToDisplay} has no coverage metrics")
-                
-
         
     if complexity       != -1.0: print ("complexity: {:d}".format(complexity))
     source = etree.SubElement(sources, "source")
