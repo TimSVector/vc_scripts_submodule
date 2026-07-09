@@ -155,6 +155,7 @@ class VectorCASTExecute(object):
             self.useJunitFailCountPct = True
             self.junit_percent_to_fail = int(args.exit_with_failed_count)
         self.failed_count = 0
+        self.passed_count = 0        
 
         if args.output_dir:
             self.output_dir = args.output_dir
@@ -166,6 +167,8 @@ class VectorCASTExecute(object):
         if not os.path.exists(self.xml_data_dir):
             os.makedirs(self.xml_data_dir)
 
+        self.covToDisplay = args.covToDisplay
+            
         if args.build and not args.build_execute:
             self.build_execute = "--build"
             self.vcast_action = "--vcast_action build"
@@ -370,8 +373,11 @@ class VectorCASTExecute(object):
                 prj_dir = os.getcwd().replace("\\","/") + "/"
 
             tempHtmlReportList = glob.glob("*.html")
-            tempHtmlReportList += glob.glob(os.path.join('xml_data', "*.html"))
-            tempHtmlReportList += glob.glob(os.path.join('html_reports', "*.html"))
+            #tempHtmlReportList += glob.glob(os.path.join('xml_data', "*.html"))
+            #tempHtmlReportList += glob.glob(os.path.join('html_reports', "*.html"))        
+            tempHtmlReportList += glob.glob(os.path.join(self.xml_data_dir, "*.html"))
+            tempHtmlReportList += glob.glob(os.path.join(self.html_base_dir, "*.html"))
+            
             htmlReportList = []
 
             for report in tempHtmlReportList:
@@ -442,7 +448,8 @@ class VectorCASTExecute(object):
                 print("Creating Cobertura Metrics")
 
             cobertura.generateCoverageResults(self.FullMP, self.azure, self.xml_data_dir, verbose = self.verbose,
-                extended=self.cobertura_extended, source_root = self.source_root)
+                extended=self.cobertura_extended, source_root = self.source_root,
+                covToDisplay = self.covToDisplay)
 
     def runSonarQubeMetrics(self):
         if not checkVectorCASTVersion(21):
@@ -625,8 +632,35 @@ class VectorCASTExecute(object):
 
             with open(self.build_log_name,"wb") as fd:
                 fd.write(build_log.encode(self.encFmt, "replace"))
+                
+    def getReturnCode(self):
+        
+        msgs = []
+        
+        complexityFailureCount = 0
+        if self.complexityCheck:
+            for key in cobertura.vgByFunction:
+                if cobertura.vgByFunction[key] > self.complexityThreshold: 
+                    file, func = key.split("::")
+                    print (f"[ERROR] \n   File    : {file}\n   Function: {func}\n   Message : COMPLEXITY is greater than {self.complexityThreshold}")
+                    complexityFailureCount += 1
+                    
+            if complexityFailureCount > 0:
+                msgs.append(f"{complexityFailureCount} complexity failures")
 
+        if args.check_build_log:
+            if check_build_log(self.build_log_name) == 2:
+                msgs.append(f"Build log error. See information above...")
 
+        if self.useJunitFailCountPct:
+            print(f"[ERROR] exit_with_failed_count={args.exit_with_failed_count} specified. Fail Percent = {round(self.failed_pct,0)}% Return code: {self.failed_count}")
+            msgs.append(f"Tests case failues greater than {args.exit_with_failed_count} specified")
+
+        if msgs:
+            return " ; ".join(msgs)
+        else:
+            return 0
+            
 if __name__ == '__main__':
 
     parser = argparse.ArgumentParser()
@@ -659,6 +693,10 @@ if __name__ == '__main__':
                                nargs='?', default=None)
     metricsGroup.add_argument('--check_build_log', help='Checks build log for a list of error phrases. Returns failure if any are found.',
                                action="store_true", default = False)    
+                               
+    metricsGroup.add_argument("--covToDisplay", type=str.lower, choices=["statement", "branch", "mcdc", "function", "functioncall"], 
+                               default="statement",help='Selects which coverage to display for coverage print.  Default is "statement".',)
+                                
     reportGroup = parser.add_argument_group('Report Selection', 'VectorCAST Manage reports that can be generated')
     reportGroup.add_argument('--aggregate', help='Generate aggregate coverage report VectorCAST Project', action="store_true", default = False)
     reportGroup.add_argument('--metrics', help='Generate metrics reports for VectorCAST Project', action="store_true", default = False)
@@ -768,22 +806,7 @@ if __name__ == '__main__':
     if args.output_dir:
         vcExec.copyXmlData()
         
-    complexityFailureCount = 0
-    if vcExec.complexityCheck:
-        for key in cobertura.vgByFunction:
-            if cobertura.vgByFunction[key] > vcExec.complexityThreshold: 
-                file, func = key.split("::")
-                print (f"[ERROR] \n   File    : {file}\n   Function: {func}\n   Message : COMPLEXITY is greater than {vcExec.complexityThreshold}")
-                complexityFailureCount += 1
-                
-        if complexityFailureCount > 0:
-            sys.exit(complexityFailureCount)
-
-    if vcExec.useJunitFailCountPct:
-        print(f"[ERROR] exit_with_failed_count={args.exit_with_failed_count} specified. Fail Percent = {round(vcExec.failed_pct,0)}% Return code: {vcExec.failed_count}")
-        sys.exit(vcExec.failed_count)
-
-    if args.check_build_log:
-        if check_build_log(vcExec.build_log_name) == 2:
-            sys.exit(2)
-
+    returnCode = vcExec.getReturnCode()
+    
+    sys.exit(returnCode)
+    
