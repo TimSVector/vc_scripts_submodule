@@ -52,12 +52,12 @@ def mergeNewResultsIntoOrigDb(origVcrFile, newVcrFile, cursor_new, cursor_orig, 
     cursor_orig.executemany(s, new_data)
     if (cursor_orig.connection.commit() == None):
         # With Ephemeral RAM connections & testing, deleting the table may be ill-advised
-        s = "Table \"%s\" merged from %s to %s" % (table_name, origVcrFile, newVcrFile)
+        s = "[INFO] Table \"%s\" merged from %s to %s" % (table_name, origVcrFile, newVcrFile)
         print(s) # Consider logging.info()
         
     return None
 
-def run(origVcrFile, newVcrFile, verbose):
+def run(origVcrFile, newVcrFile, outputVcrFile, verbose, keep):
 
     try:
         os.makedirs("newVcr")
@@ -76,12 +76,16 @@ def run(origVcrFile, newVcrFile, verbose):
         for file in glob.glob("newVcr/*.*"):
             if file.endswith(".db") and "_cover" not in file:
                 newDbName = file
+            elif file.endswith(".db") and "_cover" in file:
+                newCoverDbName = file
 
     with zipfile.ZipFile(tempOrigVcrFile, 'r') as zip_ref:
         zip_ref.extractall("origVcr")
         for file in glob.glob("origVcr/*.*"):
             if file.endswith(".db") and "_cover" not in file:
                 origDbName = file
+            elif file.endswith(".db") and "_cover" in file:
+                origCoverDbName = file
                 
     os.remove(tempNewVcrFile)
     os.remove(tempOrigVcrFile)
@@ -102,28 +106,37 @@ def run(origVcrFile, newVcrFile, verbose):
     
     new_db.close()
     orig_db.close()
-
-    os.remove(newVcrFile)
-    os.remove(origVcrFile)
-
-    shutil.make_archive(newVcrFile, 'zip', "origVcr")
-    shutil.copyfile(newVcrFile+".zip", newVcrFile)
     
-    os.remove(newVcrFile+".zip")
+    # update cover dbx
+    import update_cover_db_project_files 
+    update_cover_db_project_files.run(origCoverDbName, newCoverDbName, apply=True, verbose = verbose)
+
+    # if not keep:
+        # os.remove(newVcrFile)
+        # os.remove(origVcrFile)
+
+    shutil.make_archive(outputVcrFile, 'zip', "origVcr")
+    shutil.copyfile(outputVcrFile+".zip", outputVcrFile)
+    print(f"[INFO] Merged file: {outputVcrFile}")
+    
+    os.remove(outputVcrFile+".zip")
     shutil.rmtree("newVcr")
     shutil.rmtree("origVcr")
     
 if __name__ == '__main__':
 
     parser = argparse.ArgumentParser()
-    parser.add_argument('-o', '--orig', action='store', type=str,  help='Original Result Filename', dest="origVcrFile")
-    parser.add_argument('-n', '--new',  action='store', type=str,  help='New Result Filename', dest="newVcrFile")
+    parser.add_argument('--orig', action='store', type=str,  help='Original Result Filename', dest="origVcrFile")
+    parser.add_argument('--new',  action='store', type=str,  help='New Result Filename', dest="newVcrFile")
+    parser.add_argument('--out',  action='store', type=str,  help='Output .vcr file name', dest="outputVcrFile", default="merged.vcr")
+    parser.add_argument('--keep', action='store_true', help='Keep the original .vcr files',  default = False)
+    
     parser.add_argument('-v', '--verbose',  action="store_true",  help='Verbose output', dest="verbose", default=False)
 
     args = parser.parse_args()
     
     if os.path.isfile(args.newVcrFile):
         if os.path.isfile(args.origVcrFile):
-            run(args.origVcrFile, args.newVcrFile, args.verbose)
+            run(args.origVcrFile, args.newVcrFile, args.outputVcrFile, args.verbose, args.keep)
             
     
