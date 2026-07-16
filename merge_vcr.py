@@ -5,7 +5,7 @@ import zipfile, glob
 from pprint import pprint
 import argparse
 
-def mergeNewResultsIntoOrigDb(origVcrFile, newVcrFile, cursor_new, cursor_orig, table_name, del_old_table = False, verbose = False):
+def mergeNewResultsIntoOrigDb(origVcrFile, newVcrFile, outputVcrFile, cursor_new, cursor_orig, table_name, del_old_table = False, verbose = False):
     '''
     This function merges the content of a specific table from an old cursor into a new cursor. 
     
@@ -52,7 +52,7 @@ def mergeNewResultsIntoOrigDb(origVcrFile, newVcrFile, cursor_new, cursor_orig, 
     cursor_orig.executemany(s, new_data)
     if (cursor_orig.connection.commit() == None):
         # With Ephemeral RAM connections & testing, deleting the table may be ill-advised
-        s = "[INFO] Table \"%s\" merged from %s to %s" % (table_name, origVcrFile, newVcrFile)
+        s = "[INFO] Test results  : merged from %s to %s" % (newVcrFile, outputVcrFile)
         print(s) # Consider logging.info()
         
     return None
@@ -98,7 +98,7 @@ def run(origVcrFile, newVcrFile, outputVcrFile, verbose, keep):
     new_cursor = new_db.cursor()
     orig_cursor = orig_db.cursor()
 
-    mergeNewResultsIntoOrigDb(origVcrFile, newVcrFile, new_cursor, orig_cursor, "result", False, verbose)
+    mergeNewResultsIntoOrigDb(origVcrFile, newVcrFile, outputVcrFile, new_cursor, orig_cursor, "result", False, verbose)
     
     # Close cursors before closing database connections to release file handles
     new_cursor.close()
@@ -111,14 +111,11 @@ def run(origVcrFile, newVcrFile, outputVcrFile, verbose, keep):
     import update_cover_db_project_files 
     update_cover_db_project_files.run(origCoverDbName, newCoverDbName, apply=True, verbose = verbose)
 
-    # if not keep:
-        # os.remove(newVcrFile)
-        # os.remove(origVcrFile)
+    s = "[INFO] Cover database: merged from %s to %s" % (newVcrFile, outputVcrFile)
+    print(s) # Consider logging.info()
 
     shutil.make_archive(outputVcrFile, 'zip', "origVcr")
     shutil.copyfile(outputVcrFile+".zip", outputVcrFile)
-    print(f"[INFO] Merged file: {outputVcrFile}")
-    
     os.remove(outputVcrFile+".zip")
     shutil.rmtree("newVcr")
     shutil.rmtree("origVcr")

@@ -622,12 +622,10 @@ def run (database1, database2, apply, path_column = 'path', case_sensitive = Fal
             print("\nNo project_files rows require updating.")
             return 1 if (skipped or only_r1 or other_warnings) else 0
 
-        # if not no_backup:
-            # backup = create_backup(db1, backup)
-            # print(f"\nBackup created: {backup}")
-
         updated = apply_updates(db1, plans)
-        print(f"Updated {updated} project_files row(s) in {db1}")
+        
+        if verbose:
+            print(f"Updated {updated} project_files row(s) in {db1}")
 
         return 1 if (skipped or only_r1 or other_warnings) else 0
 
