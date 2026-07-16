@@ -929,6 +929,8 @@ class GenerateManageXml (BaseGenerateXml):
         localXML.topLevelAPI = self.api
         localXML.noResults = self.noResults
         localXML.generate_unit()
+        self.failed_count += localXML.failed_count
+        self.passed_count += localXML.passed_count
 
         ##need_fixup
         if not self.no_full_reports:
@@ -1062,6 +1064,13 @@ class GenerateManageXml (BaseGenerateXml):
         self.fh_data = ""
         self.localDataOnly = True
         self.noResults = False
+        # CI exit code uses self.failed_count / self.passed_count (see vcast_exec --exit_with_failed_count).
+        # get_full_status ALL aggregate can disagree with per-environment JUnit (e.g. EXEC_NO_EXPECTED_VALUES
+        # / "No expected values" in testcase XML). Merge counts from GenerateXml.generate_unit() per env.
+        self.failed_count = 0
+        self.passed_count = 0
+        all_errors = 0
+        all_success = 0
         if results['ALL']['testcase_results'] == {}:
             print("** No results in project")
             self.noResults = True
@@ -1070,13 +1079,12 @@ class GenerateManageXml (BaseGenerateXml):
             success = results['ALL']['testcase_results']['success_count']
             errors  = total - success
             failed  = errors
+            all_errors = errors
+            all_success = success
             self.fh_data += ("<?xml version=\"1.0\" encoding=\"" + self.encFmt.upper() + "\"?>\n")
             self.fh_data += ("<testsuites>\n")
             self.fh_data += ("    <testsuite errors=\"%d\" tests=\"%d\" failures=\"%d\" name=\"%s\" id=\"1\">\n" %
                 (errors,total,failed,escape(self.manageProjectName, quote=False)))
-
-            self.failed_count = errors
-            self.passed_count = success
 
         for result in results:
             if result in all_envs:
@@ -1109,6 +1117,27 @@ class GenerateManageXml (BaseGenerateXml):
                             extraStatus = "\n            <failure type=\"failure\"/>\n"
                             self.fh_data += (testcaseString % (tc_name_full, classname, extraStatus))
                             self.failed_count += 1
+
+        if self.failed_count == 0 and self.passed_count == 0 and not self.noResults:
+            self.failed_count = all_errors
+            self.passed_count = all_success
+        elif self.noResults and self.failed_count == 0 and self.passed_count == 0:
+            # The environment(s) were processed during build-execute but produced
+            # ZERO testcase results (results['ALL']['testcase_results'] == {} and no
+            # imported results contributed counts above).
+            # This is what happens when the VectorCAST report engine drops results
+            # - e.g. a non-UTF-8 byte in the execution data ("Replacing unknown
+            # characters in TC-000023.XML" / "Error generating report for
+            # VCAST_AUTOMATIC_COMPOUND"), or a report-generation error.
+            # Without this branch failed_count stays 0, so vcast_exec
+            # --exit_with_failed_count exits 0 and the CI job passes *vacuously*
+            # while reporting no tests at all - masking the real state (and any
+            # genuine regression). Record a synthetic failure so the job fails.
+            print("** ERROR: No testcase results reported for %s - report "
+                  "generation produced no results; counting as a failure so the "
+                  "CI job does not pass vacuously." % self.manageProjectName)
+            self.failed_count = 1
+            self.passed_count = 0
 
         self.fh_data += ("   </testsuite>\n")
         self.fh_data += ("</testsuites>\n")
